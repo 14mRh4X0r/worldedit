@@ -18,6 +18,8 @@
  */
 package com.sk89q.worldedit;
 
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -32,6 +34,9 @@ import com.sk89q.worldedit.regions.*;
 import com.sk89q.worldedit.util.TreeGenerator;
 import com.sk89q.worldedit.bags.*;
 import com.sk89q.worldedit.blocks.*;
+import com.sk89q.worldedit.expression.Expression;
+import com.sk89q.worldedit.expression.ExpressionException;
+import com.sk89q.worldedit.expression.runtime.RValue;
 import com.sk89q.worldedit.masks.Mask;
 import com.sk89q.worldedit.patterns.*;
 
@@ -225,8 +230,7 @@ public class EditSession {
                 if (blockBag == null) {
                     world.copyToWorld(pt, block);
                 }
-            }
-            else if (block instanceof TileEntityBlock) {
+            } else if (block instanceof TileEntityBlock) {
                 world.copyToWorld(pt, block);
             }
         }
@@ -520,7 +524,7 @@ public class EditSession {
      * Disable the queue. This will flush the queue.
      */
     public void disableQueue() {
-        if (queued != false) {
+        if (queued) {
             flushQueue();
         }
         queued = false;
@@ -545,6 +549,164 @@ public class EditSession {
     }
 
     /**
+     * Set a block by chance.
+     *
+     * @param pos
+     * @param block
+     * @param c 0-1 chance
+     * @return whether a block was changed
+     * @throws MaxChangedBlocksException
+     */
+    public boolean setChanceBlockIfAir(Vector pos, BaseBlock block, double c)
+            throws MaxChangedBlocksException {
+        if (Math.random() <= c) {
+            return setBlockIfAir(pos, block);
+        }
+        return false;
+    }
+
+    /**
+     * Count the number of blocks of a list of types in a region.
+     *
+     * @param region
+     * @param searchIDs
+     * @return
+     */
+    public int countBlocks(Region region, Set<Integer> searchIDs) {
+        int count = 0;
+
+        if (region instanceof CuboidRegion) {
+            // Doing this for speed
+            Vector min = region.getMinimumPoint();
+            Vector max = region.getMaximumPoint();
+
+            int minX = min.getBlockX();
+            int minY = min.getBlockY();
+            int minZ = min.getBlockZ();
+            int maxX = max.getBlockX();
+            int maxY = max.getBlockY();
+            int maxZ = max.getBlockZ();
+
+            for (int x = minX; x <= maxX; ++x) {
+                for (int y = minY; y <= maxY; ++y) {
+                    for (int z = minZ; z <= maxZ; ++z) {
+                        Vector pt = new Vector(x, y, z);
+
+                        if (searchIDs.contains(getBlockType(pt))) {
+                            ++count;
+                        }
+                    }
+                }
+            }
+        } else {
+            for (Vector pt : region) {
+                if (searchIDs.contains(getBlockType(pt))) {
+                    ++count;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /**
+     * Returns the highest solid 'terrain' block which can occur naturally.
+     *
+     * @param x
+     * @param z
+     * @param minY minimal height
+     * @param maxY maximal height
+     * @param naturalOnly look at natural blocks or all blocks
+     * @return height of highest block found or 'minY'
+     */
+    public int getHighestTerrainBlock(int x, int z, int minY, int maxY) {
+        return getHighestTerrainBlock(x, z, minY, maxY, false);
+    }
+
+    /**
+     * Returns the highest solid 'terrain' block which can occur naturally.
+     *
+     * @param x
+     * @param z
+     * @param minY minimal height
+     * @param maxY maximal height
+     * @param naturalOnly look at natural blocks or all blocks
+     * @return height of highest block found or 'minY'
+     */
+    public int getHighestTerrainBlock(int x, int z, int minY, int maxY, boolean naturalOnly) {
+        for (int y = maxY; y >= minY; --y) {
+            Vector pt = new Vector(x, y, z);
+            int id = getBlockType(pt);
+            if (naturalOnly ? BlockType.isNaturalTerrainBlock(id) : !BlockType.canPassThrough(id)) {
+                return y;
+            }
+        }
+        return minY;
+    }
+
+    /**
+     * Gets the list of missing blocks and clears the list for the next
+     * operation.
+     *
+     * @return
+     */
+    public Set<Integer> popMissingBlocks() {
+        Set<Integer> missingBlocks = this.missingBlocks;
+        this.missingBlocks = new HashSet<Integer>();
+        return missingBlocks;
+    }
+
+    /**
+     * @return the blockBag
+     */
+    public BlockBag getBlockBag() {
+        return blockBag;
+    }
+
+    /**
+     * @param blockBag the blockBag to set
+     */
+    public void setBlockBag(BlockBag blockBag) {
+        this.blockBag = blockBag;
+    }
+
+    /**
+     * Get the world.
+     *
+     * @return
+     */
+    public LocalWorld getWorld() {
+        return world;
+    }
+
+    /**
+     * Get the number of blocks changed, including repeated block changes.
+     *
+     * @return
+     */
+    public int getBlockChangeCount() {
+        return original.size();
+    }
+
+    /**
+     * Get the mask.
+     *
+     * @return mask, may be null
+     */
+    public Mask getMask() {
+        return mask;
+    }
+
+    /**
+     * Set a mask.
+     *
+     * @param mask mask or null
+     */
+    public void setMask(Mask mask) {
+        this.mask = mask;
+    }
+
+    /**
      * Finish off the queue.
      */
     public void flushQueue() {
@@ -552,19 +714,91 @@ public class EditSession {
             return;
         }
 
+        final Set<BlockVector2D> dirtyChunks = new HashSet<BlockVector2D>();
+
         for (Map.Entry<BlockVector, BaseBlock> entry : queueAfter) {
             BlockVector pt = (BlockVector) entry.getKey();
             rawSetBlock(pt, (BaseBlock) entry.getValue());
+
+            // TODO: use ChunkStore.toChunk(pt) after optimizing it.
+            if (fastMode) {
+                dirtyChunks.add(new BlockVector2D(pt.getBlockX() >> 4, pt.getBlockZ() >> 4));
+            }
         }
 
         // We don't want to place these blocks if other blocks were missing
         // because it might cause the items to drop
         if (blockBag == null || missingBlocks.size() == 0) {
+            final Set<BlockVector> blocks = new HashSet<BlockVector>();
+            final Map<BlockVector, BaseBlock> blockTypes = new HashMap<BlockVector, BaseBlock>();
             for (Map.Entry<BlockVector, BaseBlock> entry : queueLast) {
-                BlockVector pt = (BlockVector) entry.getKey();
-                rawSetBlock(pt, (BaseBlock) entry.getValue());
+                final BlockVector pt = entry.getKey();
+                blocks.add(pt);
+                blockTypes.put(pt, entry.getValue());
+            }
+
+            while (!blocks.isEmpty()) {
+                BlockVector current = blocks.iterator().next();
+                if (!blocks.contains(current)) {
+                    continue;
+                }
+
+                final Deque<BlockVector> walked = new LinkedList<BlockVector>(); 
+
+                while (true) {
+                    walked.addFirst(current);
+
+                    assert(blockTypes.containsKey(current));
+
+                    final BaseBlock baseBlock = blockTypes.get(current);
+
+                    final int type = baseBlock.getType();
+                    final int data = baseBlock.getData();
+
+                    switch (type) {
+                    case BlockID.WOODEN_DOOR:
+                    case BlockID.IRON_DOOR:
+                        if ((data & 0x8) == 0) {
+                            // Deal with lower door halves being attached to the floor AND the upper half
+                            BlockVector upperBlock = current.add(0, 1, 0).toBlockVector();
+                            if (blocks.contains(upperBlock) && !walked.contains(upperBlock)) {
+                                walked.addFirst(upperBlock);
+                            }
+                        }
+                    }
+
+                    final PlayerDirection attachment = BlockType.getAttachment(type, data);
+                    if (attachment == null) {
+                        // Block is not attached to anything => we can place it 
+                        break;
+                    }
+
+                    current = current.add(attachment.vector()).toBlockVector();
+
+                    if (!blocks.contains(current)) {
+                        // We ran outside the remaing set => assume we can place blocks on this
+                        break;
+                    }
+
+                    if (walked.contains(current)) {
+                        // Cycle detected => This will most likely go wrong, but there's nothing we can do about it.
+                        break;
+                    }
+                }
+
+                for (BlockVector pt : walked) {
+                    rawSetBlock(pt, blockTypes.get(pt));
+                    blocks.remove(pt);
+
+                    // TODO: use ChunkStore.toChunk(pt) after optimizing it.
+                    if (fastMode) {
+                        dirtyChunks.add(new BlockVector2D(pt.getBlockX() >> 4, pt.getBlockZ() >> 4));
+                    }
+                }
             }
         }
+
+        if (!dirtyChunks.isEmpty()) world.fixAfterFastMode(dirtyChunks);
 
         queueAfter.clear();
         queueLast.clear();
@@ -1724,157 +1958,37 @@ public class EditSession {
     }
 
     /**
-     * Helper method to draw the cylinder.
+     * Makes a cylinder.
      *
-     * @param center
-     * @param x
-     * @param z
-     * @param height
-     * @param block
+     * @param pos Center of the cylinder
+     * @param block The block pattern to use
+     * @param radius The cylinder's radius
+     * @param height The cylinder's up/down extent. If negative, extend downward.
+     * @param filled If false, only a shell will be generated.
+     * @return number of blocks changed
      * @throws MaxChangedBlocksException
      */
-    private int makeHCylinderPoints(Vector center, int x, double z, int height,
-            Pattern block) throws MaxChangedBlocksException {
-        int ceilZ = (int) Math.ceil(z);
-        int affected = 0;
-
-        if (x == 0) {
-            for (int y = 0; y < height; ++y) {
-                setBlock(center.add(0, y, ceilZ), block);
-                setBlock(center.add(0, y, -ceilZ), block);
-                setBlock(center.add(ceilZ, y, 0), block);
-                setBlock(center.add(-ceilZ, y, 0), block);
-                affected += 4;
-            }
-        } else if (x == z) {
-            for (int y = 0; y < height; ++y) {
-                setBlock(center.add(x, y, ceilZ), block);
-                setBlock(center.add(-x, y, ceilZ), block);
-                setBlock(center.add(x, y, -ceilZ), block);
-                setBlock(center.add(-x, y, -ceilZ), block);
-                affected += 4;
-            }
-        } else if (x < z) {
-            for (int y = 0; y < height; ++y) {
-                setBlock(center.add(x, y, ceilZ), block);
-                setBlock(center.add(-x, y, ceilZ), block);
-                setBlock(center.add(x, y, -ceilZ), block);
-                setBlock(center.add(-x, y, -ceilZ), block);
-                setBlock(center.add(ceilZ, y, x), block);
-                setBlock(center.add(-ceilZ, y, x), block);
-                setBlock(center.add(ceilZ, y, -x), block);
-                setBlock(center.add(-ceilZ, y, -x), block);
-                affected += 8;
-            }
-        }
-
-        return affected;
+    public int makeCylinder(Vector pos, Pattern block, double radius, int height, boolean filled) throws MaxChangedBlocksException {
+        return makeCylinder(pos, block, radius, radius, height, filled);
     }
 
     /**
-     * Draw a hollow cylinder.
+     * Makes a cylinder.
      *
-     * @param pos
-     * @param block
-     * @param radius
-     * @param height
-     * @return number of blocks set
+     * @param pos Center of the cylinder
+     * @param block The block pattern to use
+     * @param radiusX The cylinder's largest north/south extent
+     * @param radiusZ The cylinder's largest east/west extent
+     * @param height The cylinder's up/down extent. If negative, extend downward.
+     * @param filled If false, only a shell will be generated.
+     * @return number of blocks changed
      * @throws MaxChangedBlocksException
      */
-    public int makeHollowCylinder(Vector pos, Pattern block, double radius,
-            int height) throws MaxChangedBlocksException {
-        int x = 0;
-        double z = radius;
-        double d = (5 - radius * 4) / 4;
+    public int makeCylinder(Vector pos, Pattern block, double radiusX, double radiusZ, int height, boolean filled) throws MaxChangedBlocksException {
         int affected = 0;
 
-        if (height == 0) {
-            return 0;
-        } else if (height < 0) {
-            height = -height;
-            pos = pos.subtract(0, height, 0);
-        }
-
-        // Only do this check if height is negative --Elizabeth
-        if (height < 0 && pos.getBlockY() - height - 1 < 0) {
-            height = pos.getBlockY() + 1;
-        } else if (pos.getBlockY() + height - 1 > 127) {
-            height = 127 - pos.getBlockY() + 1;
-        }
-
-        affected += makeHCylinderPoints(pos, x, z, height, block);
-
-        while (x < z) {
-            ++x;
-
-            if (d >= 0) {
-                d += 2 * (x - --z) + 1;
-            } else {
-                d += 2 * x + 1;
-            }
-
-            affected += makeHCylinderPoints(pos, x, z, height, block);
-        }
-
-        return affected;
-    }
-
-    /**
-     * Helper method to draw the cylinder.
-     *
-     * @param center
-     * @param x
-     * @param z
-     * @param height
-     * @param block
-     * @throws MaxChangedBlocksException
-     */
-    private int makeCylinderPoints(Vector center, int x, double z, int height,
-            Pattern block) throws MaxChangedBlocksException {
-        int ceilZ = (int) Math.ceil(z);
-    	int affected = 0;
-
-        if (x == z) {
-            for (int y = 0; y < height; ++y) {
-                for (int z2 = -ceilZ; z2 <= ceilZ; ++z2) {
-                    setBlock(center.add(x, y, z2), block);
-                    setBlock(center.add(-x, y, z2), block);
-                    affected += 2;
-                }
-            }
-        } else if (x < z) {
-            for (int y = 0; y < height; ++y) {
-                for (int x2 = -x; x2 <= x; ++x2) {
-                    for (int z2 = -ceilZ; z2 <= ceilZ; ++z2) {
-                        setBlock(center.add(x2, y, z2), block);
-                        ++affected;
-                    }
-                    setBlock(center.add(ceilZ, y, x2), block);
-                    setBlock(center.add(-ceilZ, y, x2), block);
-                    affected += 2;
-                }
-            }
-        }
-
-        return affected;
-    }
-
-    /**
-     * Draw a filled cylinder.
-     *
-     * @param pos
-     * @param block
-     * @param radius
-     * @param height
-     * @return number of blocks set
-     * @throws MaxChangedBlocksException
-     */
-    public int makeCylinder(Vector pos, Pattern block, double radius, int height)
-            throws MaxChangedBlocksException {
-        int x = 0;
-        double z = radius;
-        double d = (5 - radius * 4) / 4;
-        int affected = 0;
+        radiusX += 0.5;
+        radiusZ += 0.5;
 
         if (height == 0) {
             return 0;
@@ -1889,82 +2003,48 @@ public class EditSession {
             height = 127 - pos.getBlockY() + 1;
         }
 
-        affected += makeCylinderPoints(pos, x, z, height, block);
+        final double invRadiusX = 1 / radiusX;
+        final double invRadiusZ = 1 / radiusZ;
 
-        while (x < z) {
-            ++x;
+        final int ceilRadiusX = (int) Math.ceil(radiusX);
+        final int ceilRadiusZ = (int) Math.ceil(radiusZ);
 
-            if (d >= 0) {
-                d += 2 * (x - --z) + 1;
-            } else {
-                d += 2 * x + 1;
-            }
+        double nextXn = 0;
+        forX:
+        for (int x = 0; x <= ceilRadiusX; ++x) {
+            final double xn = nextXn;
+            nextXn = (x + 1) * invRadiusX;
+            double nextZn = 0;
+            forZ:
+            for (int z = 0; z <= ceilRadiusZ; ++z) {
+                final double zn = nextZn;
+                nextZn = (z + 1) * invRadiusZ;
 
-            affected += makeCylinderPoints(pos, x, z, height, block);
-        }
+                double distanceSq = lengthSq(xn, zn);
+                if (distanceSq > 1) {
+                    if (z == 0) {
+                        break forX;
+                    }
+                    break forZ;
+                }
 
-        return affected;
-    }
-
-    /**
-     * Makes a sphere or ellipsoid.
-     *
-     * @param pos Center of the sphere or ellipsoid
-     * @param block The block pattern to use
-     * @param radiusX The sphere/ellipsoid's largest north/south extent
-     * @param radiusY The sphere/ellipsoid's largest up/down extent
-     * @param radiusZ The sphere/ellipsoid's largest east/west extent
-     * @param filled If false, only a shell will be generated.
-     * @return number of blocks changed
-     * @throws MaxChangedBlocksException
-     */
-    public int makeSphere(Vector pos, Pattern block, double radius, boolean filled) throws MaxChangedBlocksException {
-        int affected = 0;
-
-        radius += 0.5;
-        final double radiusSq = radius*radius;
-        final double radius1Sq = (radius - 1)*(radius - 1);
-
-        final int ceilRadius = (int) Math.ceil(radius);
-        for (int x = 0; x <= ceilRadius; ++x) {
-            for (int y = 0; y <= ceilRadius; ++y) {
-                for (int z = 0; z <= ceilRadius; ++z) {
-                    double dSq = lengthSq(x, y, z);
-
-                    if (dSq > radiusSq) {
+                if (!filled) {
+                    if (lengthSq(nextXn, zn) <= 1 && lengthSq(xn, nextZn) <= 1) {
                         continue;
                     }
-                    if (!filled) {
-                        if (dSq < radius1Sq
-                                || (lengthSq(x + 1, y, z) <= radiusSq
-                                && lengthSq(x, y + 1, z) <= radiusSq
-                                && lengthSq(x, y, z + 1) <= radiusSq)) {
-                            continue;
-                        }
-                    }
+                }
 
+                for (int y = 0; y < height; ++y) {
                     if (setBlock(pos.add(x, y, z), block)) {
                         ++affected;
                     }
                     if (setBlock(pos.add(-x, y, z), block)) {
                         ++affected;
                     }
-                    if (setBlock(pos.add(x, -y, z), block)) {
-                        ++affected;
-                    }
                     if (setBlock(pos.add(x, y, -z), block)) {
                         ++affected;
                     }
-                    if (setBlock(pos.add(-x, -y, z), block)) {
-                        ++affected;
-                    }
-                    if (setBlock(pos.add(x, -y, -z), block)) {
-                        ++affected;
-                    }
                     if (setBlock(pos.add(-x, y, -z), block)) {
-                        ++affected;
-                    }
-                    if (setBlock(pos.add(-x, -y, -z), block)) {
                         ++affected;
                     }
                 }
@@ -1972,6 +2052,20 @@ public class EditSession {
         }
 
         return affected;
+    }
+
+    /**
+    * Makes a sphere.
+    *
+    * @param pos Center of the sphere or ellipsoid
+    * @param block The block pattern to use
+    * @param radius The sphere's radius
+    * @param filled If false, only a shell will be generated.
+    * @return number of blocks changed
+    * @throws MaxChangedBlocksException
+    */
+    public int makeSphere(Vector pos, Pattern block, double radius, boolean filled) throws MaxChangedBlocksException {
+        return makeSphere(pos, block, radius, radius, radius, filled);
     }
 
     /**
@@ -2067,6 +2161,10 @@ public class EditSession {
 
     private static final double lengthSq(double x, double y, double z) {
         return (x * x) + (y * y) + (z * z);
+    }
+
+    private static final double lengthSq(double x, double z) {
+        return (x * x) + (z * z);
     }
 
     /**
@@ -2284,23 +2382,6 @@ public class EditSession {
     }
 
     /**
-     * Set a block by chance.
-     *
-     * @param pos
-     * @param block
-     * @param c 0-1 chance
-     * @return whether a block was changed
-     * @throws MaxChangedBlocksException
-     */
-    public boolean setChanceBlockIfAir(Vector pos, BaseBlock block, double c)
-            throws MaxChangedBlocksException {
-        if (Math.random() <= c) {
-            return setBlockIfAir(pos, block);
-        }
-        return false;
-    }
-
-    /**
      * Makes a pumpkin patch.
      *
      * @param basePos
@@ -2477,50 +2558,6 @@ public class EditSession {
     }
 
     /**
-     * Count the number of blocks of a list of types in a region.
-     *
-     * @param region
-     * @param searchIDs
-     * @return
-     */
-    public int countBlocks(Region region, Set<Integer> searchIDs) {
-        int count = 0;
-
-        if (region instanceof CuboidRegion) {
-            // Doing this for speed
-            Vector min = region.getMinimumPoint();
-            Vector max = region.getMaximumPoint();
-
-            int minX = min.getBlockX();
-            int minY = min.getBlockY();
-            int minZ = min.getBlockZ();
-            int maxX = max.getBlockX();
-            int maxY = max.getBlockY();
-            int maxZ = max.getBlockZ();
-
-            for (int x = minX; x <= maxX; ++x) {
-                for (int y = minY; y <= maxY; ++y) {
-                    for (int z = minZ; z <= maxZ; ++z) {
-                        Vector pt = new Vector(x, y, z);
-
-                        if (searchIDs.contains(getBlockType(pt))) {
-                            ++count;
-                        }
-                    }
-                }
-            }
-        } else {
-            for (Vector pt : region) {
-                if (searchIDs.contains(getBlockType(pt))) {
-                    ++count;
-                }
-            }
-        }
-
-        return count;
-    }
-
-    /**
      * Get the block distribution inside a region.
      *
      * @param region
@@ -2578,101 +2615,60 @@ public class EditSession {
         return distribution;
     }
 
-    /**
-     * Returns the highest solid 'terrain' block which can occur naturally.
-     *
-     * @param x
-     * @param z
-     * @param minY minimal height
-     * @param maxY maximal height
-     * @param naturalOnly look at natural blocks or all blocks
-     * @return height of highest block found or 'minY'
-     */
-    public int getHighestTerrainBlock(int x, int z, int minY, int maxY) {
-        return getHighestTerrainBlock(x, z, minY, maxY, false);
+    public int makeShape(final Region region, final Vector zero, final Vector unit, final Pattern pattern, final String expressionString, final boolean hollow) throws ExpressionException, MaxChangedBlocksException {
+        final Expression expression = Expression.compile(expressionString, "x", "y", "z", "type", "data");
+        expression.optimize();
+
+        final RValue typeVariable = expression.getVariable("type");
+        final RValue dataVariable = expression.getVariable("data");
+
+        final ArbitraryShape shape = new ArbitraryShape(region) {
+            @Override
+            protected BaseBlock getMaterial(int x, int y, int z, BaseBlock defaultMaterial) {
+                final Vector scaled = new Vector(x, y, z).subtract(zero).divide(unit);
+
+                try {
+                    if (expression.evaluate(scaled.getX(), scaled.getY(), scaled.getZ(), defaultMaterial.getType(), defaultMaterial.getData()) <= 0) {
+                        return null;
+                    }
+
+                    return new BaseBlock((int)typeVariable.getValue(), (int)dataVariable.getValue());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+        };
+
+        return shape.generate(this, pattern, hollow);
     }
 
-    /**
-     * Returns the highest solid 'terrain' block which can occur naturally.
-     *
-     * @param x
-     * @param z
-     * @param minY minimal height
-     * @param maxY maximal height
-     * @param naturalOnly look at natural blocks or all blocks
-     * @return height of highest block found or 'minY'
-     */
-    public int getHighestTerrainBlock(int x, int z, int minY, int maxY, boolean naturalOnly) {
-        for (int y = maxY; y >= minY; --y) {
-            Vector pt = new Vector(x, y, z);
-            int id = getBlockType(pt);
-            if (naturalOnly ? BlockType.isNaturalTerrainBlock(id) : !BlockType.canPassThrough(id)) {
-                return y;
+    public int deformRegion(final Region region, final Vector zero, final Vector unit, final String expressionString) throws ExpressionException, MaxChangedBlocksException {
+        final Expression expression = Expression.compile(expressionString, "x", "y", "z");
+        expression.optimize();
+
+        final RValue x = expression.getVariable("x");
+        final RValue y = expression.getVariable("y");
+        final RValue z = expression.getVariable("z");
+
+        int affected = 0;
+
+        for (BlockVector position : region) {
+            final Vector scaled = position.subtract(zero).divide(unit);
+
+            expression.evaluate(scaled.getX(), scaled.getY(), scaled.getZ());
+
+            final Vector sourceScaled = new Vector(x.getValue(), y.getValue(), z.getValue());
+
+            final BlockVector sourcePosition = sourceScaled.multiply(unit).add(zero).toBlockPoint();
+
+            BaseBlock material = new BaseBlock(world.getBlockType(sourcePosition), world.getBlockData(sourcePosition));
+
+            if (setBlock(position, material)) {
+                ++affected;
             }
         }
-        return minY;
-    }
 
-    /**
-     * Gets the list of missing blocks and clears the list for the next
-     * operation.
-     *
-     * @return
-     */
-    public Set<Integer> popMissingBlocks() {
-        Set<Integer> missingBlocks = this.missingBlocks;
-        this.missingBlocks = new HashSet<Integer>();
-        return missingBlocks;
-    }
-
-    /**
-     * @return the blockBag
-     */
-    public BlockBag getBlockBag() {
-        return blockBag;
-    }
-
-    /**
-     * @param blockBag
-     *            the blockBag to set
-     */
-    public void setBlockBag(BlockBag blockBag) {
-        this.blockBag = blockBag;
-    }
-
-    /**
-     * Get the world.
-     *
-     * @return
-     */
-    public LocalWorld getWorld() {
-        return world;
-    }
-
-    /**
-     * Get the number of blocks changed, including repeated block changes.
-     *
-     * @return
-     */
-    public int getBlockChangeCount() {
-        return original.size();
-    }
-
-    /**
-     * Get the mask.
-     *
-     * @return mask, may be null
-     */
-    public Mask getMask() {
-        return mask;
-    }
-
-    /**
-     * Set a mask.
-     *
-     * @param mask mask or null
-     */
-    public void setMask(Mask mask) {
-        this.mask = mask;
+        return affected;
     }
 }

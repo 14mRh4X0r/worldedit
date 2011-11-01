@@ -20,14 +20,24 @@
 package com.sk89q.worldedit.expression.lexer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.sk89q.worldedit.expression.lexer.tokens.*;
 
+/**
+ * Processes a string into a list of tokens.
+ *
+ * Tokens can be numbers, identifiers, operators and assorted other characters.
+ *
+ * @author TomyLobo
+ */
 public class Lexer {
     private final String expression;
     private int position = 0;
@@ -41,15 +51,28 @@ public class Lexer {
     }
 
     private final DecisionTree operatorTree = new DecisionTree(null,
-            '-', new DecisionTree("-"),
-            '+', new DecisionTree("+"),
-            '*', new DecisionTree("*",
-                    '*', new DecisionTree("^")
+            '+', new DecisionTree("+",
+                    '=', new DecisionTree("+="),
+                    '+', new DecisionTree("++")
             ),
-            '/', new DecisionTree("/"),
-            '%', new DecisionTree("%"),
-            '^', new DecisionTree("^"),
-            '=', new DecisionTree(null, // not implemented
+            '-', new DecisionTree("-",
+                    '=', new DecisionTree("-="),
+                    '-', new DecisionTree("--")
+            ),
+            '*', new DecisionTree("*",
+                    '=', new DecisionTree("*="),
+                    '*', new DecisionTree("**")
+            ),
+            '/', new DecisionTree("/",
+                    '=', new DecisionTree("/=")
+            ),
+            '%', new DecisionTree("%",
+                    '=', new DecisionTree("%=")
+            ),
+            '^', new DecisionTree("^",
+                    '=', new DecisionTree("^=")
+            ),
+            '=', new DecisionTree("=",
                     '=', new DecisionTree("==")
             ),
             '!', new DecisionTree("!",
@@ -74,6 +97,18 @@ public class Lexer {
             )
     );
 
+    private static final Set<Character> characterTokens = new HashSet<Character>();
+    static {
+        characterTokens.add(',');
+        characterTokens.add('(');
+        characterTokens.add(')');
+        characterTokens.add('{');
+        characterTokens.add('}');
+        characterTokens.add(';');
+    }
+
+    private static final Set<String> keywords = new HashSet<String>(Arrays.asList("if", "else"));
+
     private static final Pattern numberPattern = Pattern.compile("^([0-9]*(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)");
     private static final Pattern identifierPattern = Pattern.compile("^([A-Za-z][0-9A-Za-z_]*)");
 
@@ -93,45 +128,44 @@ public class Lexer {
             }
 
             final char ch = peek();
-            switch (ch) {
-            case ',':
-            case '(':
-            case ')':
+
+            if (characterTokens.contains(ch)) {
                 tokens.add(new CharacterToken(position++, ch));
-                break;
-
-            default:
-                final Matcher numberMatcher = numberPattern.matcher(expression.substring(position));
-                if (numberMatcher.lookingAt()) {
-                    String numberPart = numberMatcher.group(1);
-                    if (!numberPart.isEmpty()) {
-                        try {
-                            tokens.add(new NumberToken(position, Double.parseDouble(numberPart)));
-                        }
-                        catch (NumberFormatException e) {
-                            throw new LexerException(position, "Number parsing failed", e);
-                        }
-
-                        position += numberPart.length();
-                        continue;
-                    }
-                }
-
-                final Matcher identifierMatcher = identifierPattern.matcher(expression.substring(position));
-                if (identifierMatcher.lookingAt()) {
-                    String identifierPart = identifierMatcher.group(1);
-                    if (!identifierPart.isEmpty()) {
-                        tokens.add(new IdentifierToken(position, identifierPart));
-
-                        position += identifierPart.length();
-                        continue;
-                    }
-                }
-
-                throw new LexerException(position, "Unknown character '" + ch + "'");
+                continue;
             }
-        }
-        while (position < expression.length());
+
+            final Matcher numberMatcher = numberPattern.matcher(expression.substring(position));
+            if (numberMatcher.lookingAt()) {
+                String numberPart = numberMatcher.group(1);
+                if (!numberPart.isEmpty()) {
+                    try {
+                        tokens.add(new NumberToken(position, Double.parseDouble(numberPart)));
+                    } catch (NumberFormatException e) {
+                        throw new LexerException(position, "Number parsing failed", e);
+                    }
+
+                    position += numberPart.length();
+                    continue;
+                }
+            }
+
+            final Matcher identifierMatcher = identifierPattern.matcher(expression.substring(position));
+            if (identifierMatcher.lookingAt()) {
+                String identifierPart = identifierMatcher.group(1);
+                if (!identifierPart.isEmpty()) {
+                    if (keywords.contains(identifierPart)) {
+                        tokens.add(new KeywordToken(position, identifierPart));
+                    } else {
+                        tokens.add(new IdentifierToken(position, identifierPart));
+                    }
+
+                    position += identifierPart.length();
+                    continue;
+                }
+            }
+
+            throw new LexerException(position, "Unknown character '" + ch + "'");
+        } while (position < expression.length());
 
         return tokens;
     }

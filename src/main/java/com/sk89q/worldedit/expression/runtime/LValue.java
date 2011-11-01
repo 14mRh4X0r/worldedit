@@ -17,27 +17,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-package com.sk89q.worldedit.expression.parser;
-
-import com.sk89q.worldedit.expression.Identifiable;
+package com.sk89q.worldedit.expression.runtime;
 
 /**
- * A pseudo-token, inserted by the parser instead of the lexer.
+ * A value that can be used on the left side of an assignment.
  *
  * @author TomyLobo
  */
-public abstract class PseudoToken implements Identifiable {
-    private final int position;
-
-    public PseudoToken(int position) {
-        this.position = position;
+public abstract class LValue extends RValue {
+    public LValue(int position) {
+        super(position);
     }
 
-    @Override
-    public abstract char id();
-
-    @Override
-    public int getPosition() {
-        return position;
-    }
+    public abstract double assign(double value) throws EvaluationException;
 }

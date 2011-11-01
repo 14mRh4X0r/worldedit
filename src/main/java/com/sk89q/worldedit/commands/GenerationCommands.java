@@ -25,7 +25,9 @@ import com.sk89q.minecraft.util.commands.CommandPermissions;
 import com.sk89q.minecraft.util.commands.Logging;
 import static com.sk89q.minecraft.util.commands.Logging.LogMode.*;
 import com.sk89q.worldedit.*;
+import com.sk89q.worldedit.expression.ExpressionException;
 import com.sk89q.worldedit.patterns.Pattern;
+import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.util.TreeGenerator;
 
 /**
@@ -36,7 +38,7 @@ import com.sk89q.worldedit.util.TreeGenerator;
 public class GenerationCommands {
     @Command(
         aliases = { "/hcyl" },
-        usage = "<block> <radius> [height]",
+        usage = "<block> <radius>[,<radius>] [height]",
         desc = "Generate a hollow cylinder",
         min = 2,
         max = 3
@@ -48,17 +50,32 @@ public class GenerationCommands {
             throws WorldEditException {
 
         Pattern block = we.getBlockPattern(player, args.getString(0));
-        double radius = Math.max(1, args.getDouble(1));
+        String[] radiuses = args.getString(1).split(",");
+        final double radiusX, radiusZ;
+        switch (radiuses.length) {
+        case 1:
+            radiusX = radiusZ = Math.max(1, Double.parseDouble(radiuses[0]));
+            break;
+
+        case 2:
+            radiusX = Math.max(1, Double.parseDouble(radiuses[0]));
+            radiusZ = Math.max(1, Double.parseDouble(radiuses[1]));
+            break;
+
+        default:
+            player.printError("You must either specify 1 or 2 radius values.");
+            return;
+        }
         int height = args.argsLength() > 2 ? args.getInteger(2) : 1;
 
         Vector pos = session.getPlacementPosition(player);
-        int affected = editSession.makeHollowCylinder(pos, block, radius, height);
+        int affected = editSession.makeCylinder(pos, block, radiusX, radiusZ, height, false);
         player.print(affected + " block(s) have been created.");
     }
 
     @Command(
         aliases = { "/cyl" },
-        usage = "<block> <radius> [height]",
+        usage = "<block> <radius>[,<radius>] [height]",
         desc = "Generate a cylinder",
         min = 2,
         max = 3
@@ -70,11 +87,26 @@ public class GenerationCommands {
             throws WorldEditException {
 
         Pattern block = we.getBlockPattern(player, args.getString(0));
-        double radius = Math.max(1, args.getDouble(1));
+        String[] radiuses = args.getString(1).split(",");
+        final double radiusX, radiusZ;
+        switch (radiuses.length) {
+        case 1:
+            radiusX = radiusZ = Math.max(1, Double.parseDouble(radiuses[0]));
+            break;
+
+        case 2:
+            radiusX = Math.max(1, Double.parseDouble(radiuses[0]));
+            radiusZ = Math.max(1, Double.parseDouble(radiuses[1]));
+            break;
+
+        default:
+            player.printError("You must either specify 1 or 2 radius values.");
+            return;
+        }
         int height = args.argsLength() > 2 ? args.getInteger(2) : 1;
 
         Vector pos = session.getPlacementPosition(player);
-        int affected = editSession.makeCylinder(pos, block, radius, height);
+        int affected = editSession.makeCylinder(pos, block, radiusX, radiusZ, height, true);
         player.print(affected + " block(s) have been created.");
     }
 
@@ -82,7 +114,6 @@ public class GenerationCommands {
         aliases = { "/hsphere" },
         usage = "<block> <radius>[,<radius>,<radius>] [raised?]",
         desc = "Generate a hollow sphere.",
-        flags = "q",
         min = 2,
         max = 3
     )
@@ -91,29 +122,6 @@ public class GenerationCommands {
     public static void hsphere(CommandContext args, WorldEdit we,
             LocalSession session, LocalPlayer player, EditSession editSession)
             throws WorldEditException {
-
-        if (args.hasFlag('q')) {
-            Pattern block = we.getBlockPattern(player, args.getString(0));
-            String[] radiuses = args.getString(1).split(",");
-            if (radiuses.length > 1) {
-                throw new InsufficientArgumentsException("Cannot specify q flag and multiple radiuses."); 
-            }
-            double radius = Double.parseDouble(radiuses[0]);
-            boolean raised = args.argsLength() > 2
-                    ? (args.getString(2).equalsIgnoreCase("true")
-                            || args.getString(2).equalsIgnoreCase("yes"))
-                    : false;
-
-            Vector pos = session.getPlacementPosition(player);
-            if (raised) {
-                pos = pos.add(0, radius, 0);
-            }
-
-            int affected = editSession.makeSphere(pos, block, radius, false);
-            player.findFreePosition();
-            player.print(affected + " block(s) have been created.");
-            return;
-        }
 
         final Pattern block = we.getBlockPattern(player, args.getString(0));
         String[] radiuses = args.getString(1).split(",");
@@ -154,7 +162,6 @@ public class GenerationCommands {
         aliases = { "/sphere" },
         usage = "<block> <radius>[,<radius>,<radius>] [raised?]",
         desc = "Generate a filled sphere.",
-        flags = "q",
         min = 2,
         max = 3
     )
@@ -163,29 +170,6 @@ public class GenerationCommands {
     public static void sphere(CommandContext args, WorldEdit we,
             LocalSession session, LocalPlayer player, EditSession editSession)
             throws WorldEditException {
-
-        if (args.hasFlag('q')) {
-            Pattern block = we.getBlockPattern(player, args.getString(0));
-            String[] radiuses = args.getString(1).split(",");
-            if (radiuses.length > 1) {
-                throw new InsufficientArgumentsException("Cannot specify q flag and multiple radiuses."); 
-            }
-            double radius = Double.parseDouble(radiuses[0]);
-            boolean raised = args.argsLength() > 2
-                    ? (args.getString(2).equalsIgnoreCase("true")
-                            || args.getString(2).equalsIgnoreCase("yes"))
-                    : false;
-
-            Vector pos = session.getPlacementPosition(player);
-            if (raised) {
-                pos = pos.add(0, radius, 0);
-            }
-
-            int affected = editSession.makeSphere(pos, block, radius, true);
-            player.findFreePosition();
-            player.print(affected + " block(s) have been created.");
-            return;
-        }
 
         Pattern block = we.getBlockPattern(player, args.getString(0));
         String[] radiuses = args.getString(1).split(",");
@@ -314,5 +298,56 @@ public class GenerationCommands {
         
         player.findFreePosition();
         player.print(affected + " block(s) have been created.");
+    }
+
+    @Command(
+        aliases = { "/generate", "/gen", "/g" },
+        usage = "<block> <expression>",
+        desc = "Generates a shape according to a formula. -h for hollow, -r for raw coordinates, -o for unscaled, but offset from placement",
+        flags = "hro",
+        min = 1,
+        max = -1
+    )
+    @CommandPermissions("worldedit.generation.shape")
+    @Logging(ALL)
+    public static void generate(CommandContext args, WorldEdit we,
+            LocalSession session, LocalPlayer player, EditSession editSession)
+            throws WorldEditException {
+
+        final Pattern pattern = we.getBlockPattern(player, args.getString(0));
+        final Region region = session.getSelection(player.getWorld());
+
+        final boolean hollow = args.hasFlag('h');
+
+        final String expression = args.getJoinedStrings(1);
+
+        final Vector zero;
+        Vector unit;
+
+        if (args.hasFlag('r')) {
+            zero = new Vector(0,0,0);
+            unit = new Vector(1,1,1);
+        } else if (args.hasFlag('o')) {
+            zero = session.getPlacementPosition(player);
+            unit = new Vector(1,1,1);
+        } else {
+            final Vector min = region.getMinimumPoint();
+            final Vector max = region.getMaximumPoint();
+
+            zero = max.add(min).multiply(0.5);
+            unit = max.subtract(zero);
+
+            if (unit.getX() == 0) unit = unit.setX(1.0);
+            if (unit.getY() == 0) unit = unit.setY(1.0);
+            if (unit.getZ() == 0) unit = unit.setZ(1.0);
+        }
+
+        try {
+            final int affected = editSession.makeShape(region, zero, unit, pattern, expression, hollow);
+            player.findFreePosition();
+            player.print(affected + " block(s) have been created.");
+        } catch (ExpressionException e) {
+            player.printError(e.getMessage());
+        }
     }
 }

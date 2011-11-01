@@ -21,20 +21,25 @@ package com.sk89q.worldedit.expression.runtime;
 
 import com.sk89q.worldedit.expression.Identifiable;
 
-public abstract class Invokable implements Identifiable {
+/**
+ * A value that can be used on the right side of an assignment.
+ *
+ * @author TomyLobo
+ */
+public abstract class RValue implements Identifiable {
     private final int position;
 
-    public Invokable(int position) {
+    public RValue(int position) {
         super();
         this.position = position;
     }
 
-    public abstract double invoke() throws EvaluationException;
+    public abstract double getValue() throws EvaluationException;
 
     @Override
     public abstract String toString();
 
-    public Invokable optimize() throws EvaluationException {
+    public RValue optimize() throws EvaluationException {
         return this;
     }
 

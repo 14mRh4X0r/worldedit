@@ -100,7 +100,7 @@ public abstract class LocalWorld {
         setBlockData(pt, data);
         return ret;
     }
-    
+
     /**
      * set block type & data
      * @param pt
@@ -113,7 +113,7 @@ public abstract class LocalWorld {
         setBlockDataFast(pt, data);
         return ret;
     }
-    
+
     /**
      * Get block data.
      * 
@@ -325,4 +325,13 @@ public abstract class LocalWorld {
     public int getHeight() {
         return 127;
     }
+
+    /**
+     * Does some post-processing. Should be called after using fast mode
+     * 
+     * @param chunks the chunks to fix
+     */
+    public void fixAfterFastMode(Iterable<BlockVector2D> chunks) {}
+
+    public void fixLighting(Iterable<BlockVector2D> chunks) {}
 }

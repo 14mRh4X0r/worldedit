@@ -22,11 +22,13 @@ package com.sk89q.bukkit.migration;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
+
+import com.sk89q.util.yaml.YAMLFormat;
+import com.sk89q.util.yaml.YAMLProcessor;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.config.Configuration;
 
 public class PermissionsResolverManager implements PermissionsResolver {
     private static final String CONFIG_HEADER = "#\r\n" +
@@ -55,21 +57,22 @@ public class PermissionsResolverManager implements PermissionsResolver {
     private Server server;
     private PermissionsResolver permissionResolver;
     private PermissionsResolverServerListener listener;
-    private Configuration config;
+    private YAMLProcessor config;
     private String name;
     private Logger logger;
+    private List<Class<? extends PermissionsResolver>> enabledResolvers = new ArrayList<Class<? extends PermissionsResolver>>();
 
     @SuppressWarnings("unchecked")
     protected Class<? extends PermissionsResolver>[] availableResolvers = new Class[] {
-        DinnerPermsResolver.class,
-        NijiPermissionsResolver.class,
-        PermissionsExResolver.class,
         PluginPermissionsResolver.class,
+        PermissionsExResolver.class,
+        NijiPermissionsResolver.class,
+        DinnerPermsResolver.class,
         FlatFilePermissionsResolver.class
     };
 
     @Deprecated
-    public PermissionsResolverManager(Configuration config, Server server, String name, Logger logger) {
+    public PermissionsResolverManager(org.bukkit.util.config.Configuration config, Server server, String name, Logger logger) {
         this.server = server;
         this.name = name;
         this.logger = logger;
@@ -88,23 +91,25 @@ public class PermissionsResolverManager implements PermissionsResolver {
     }
 
     public void findResolver() {
-        for (Class<? extends PermissionsResolver> resolverClass : availableResolvers) {
+        for (Class<? extends PermissionsResolver> resolverClass : enabledResolvers) {
             try {
-                Method factoryMethod = resolverClass.getMethod("factory", Server.class, Configuration.class);
+                Method factoryMethod = resolverClass.getMethod("factory", Server.class, YAMLProcessor.class);
 
                 this.permissionResolver = (PermissionsResolver) factoryMethod.invoke(null, this.server, this.config);
 
                 if (this.permissionResolver != null) {
-                    logger.info(name + ": " + this.permissionResolver.getDetectionMessage());
-                    return;
+                    break;
                 }
             } catch (Throwable e) {
+                logger.warning("Error in factory method for " + resolverClass.getSimpleName() + ": " + e);
+                e.printStackTrace();
                 continue;
             }
         }
-
-        permissionResolver = new ConfigurationPermissionsResolver(config);
-        logger.info(name + ": No known permissions plugin detected. Using configuration file for permissions.");
+        if (permissionResolver == null) {
+            permissionResolver = new ConfigurationPermissionsResolver(config);
+        }
+        logger.info(name + ": " + permissionResolver.getDetectionMessage());
     }
 
     public void setPluginPermissionsResolver(Plugin plugin) {
@@ -113,7 +118,7 @@ public class PermissionsResolverManager implements PermissionsResolver {
         }
 
         permissionResolver = new PluginPermissionsResolver((PermissionsProvider) plugin, plugin);
-        logger.info(name + ": Using plugin '" + plugin.getDescription().getName() + "' for permissions.");
+        logger.info(name + ": " + permissionResolver.getDetectionMessage());
     }
 
     public void load() {
@@ -145,24 +150,73 @@ public class PermissionsResolverManager implements PermissionsResolver {
                 e.printStackTrace();
             }
         }
-        config = new Configuration(file);
-        config.load();
-        List<String> keys = config.getKeys();
-        config.setHeader(CONFIG_HEADER);
-        if (!keys.contains("dinnerperms")) {
-            config.setProperty("dinnerperms", config.getBoolean("dinner-perms", true));
-            isUpdated = true;
+        config = new YAMLProcessor(file, false, YAMLFormat.EXTENDED);
+        try {
+            config.load();
+        } catch (IOException e) {
+            logger.severe("Error loading WEPIF Config: " + e);
+            e.printStackTrace();
         }
+        List<String> keys = config.getKeys(null);
+        config.setHeader(CONFIG_HEADER);
+
         if (!keys.contains("ignore-nijiperms-bridges")) {
             config.setProperty("ignore-nijiperms-bridges", true);
             isUpdated = true;
         }
-        if (keys.contains("dinner-perms")) {
-            config.removeProperty("dinner-perms");
+
+        if (!keys.contains("resolvers")) {
+           //List<String> resolverKeys = config.getKeys("resolvers");
+           List<String> resolvers = new ArrayList<String>();
+            for (Class<?> clazz : availableResolvers) {
+                resolvers.add(clazz.getSimpleName());
+            }
+            enabledResolvers.addAll(Arrays.asList(availableResolvers));
+            config.setProperty("resolvers.enabled", resolvers);
+            isUpdated = true;
+        } else {
+            List<String> disabledResolvers = config.getStringList("resolvers.disabled", new ArrayList<String>());
+            List<String> stagedEnabled = config.getStringList("resolvers.enabled", null);
+            for (Iterator<String> i = stagedEnabled.iterator(); i.hasNext();) {
+                String nextName = i.next();
+                Class<?> next = null;
+                try {
+                    next = Class.forName(getClass().getPackage().getName() + "." + nextName);
+                } catch (ClassNotFoundException e) {}
+                
+                if (next == null || !PermissionsResolver.class.isAssignableFrom(next)) {
+                    logger.warning("WEPIF: Invalid or unknown class found in enabled resolvers: "
+                            + nextName + ". Moving to disabled resolvers list.");
+                    i.remove();
+                    disabledResolvers.add(nextName);
+                    isUpdated = true;
+                    continue;
+                }
+                enabledResolvers.add(next.asSubclass(PermissionsResolver.class));
+            }
+
+            for (Class<?> clazz : availableResolvers) {
+                if (!stagedEnabled.contains(clazz.getSimpleName()) &&
+                        !disabledResolvers.contains(clazz.getSimpleName())) {
+                    disabledResolvers.add(clazz.getName());
+                    logger.info("New permissions resolver: "
+                            + clazz.getSimpleName() + " detected. " +
+                            "Added to disabled resolvers list.");
+                    isUpdated = true;
+                }
+            }
+            config.setProperty("resolvers.disabled", disabledResolvers);
+            config.setProperty("resolvers.enabled", stagedEnabled);
+        }
+
+        if (keys.contains("dinner-perms") || keys.contains("dinnerperms")) {
+            config.setProperty("dinner-perms", null);
+            config.setProperty("dinnerperms", null);
             isUpdated = true;
         }
         if (!keys.contains("permissions")) {
-            ConfigurationPermissionsResolver.generateDefaultPerms(config);
+            ConfigurationPermissionsResolver.generateDefaultPerms(
+                    config.addNode("permissions"));
             isUpdated = true;
         }
         if (isUpdated) {

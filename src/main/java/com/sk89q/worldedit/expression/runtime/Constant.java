@@ -19,7 +19,12 @@
 
 package com.sk89q.worldedit.expression.runtime;
 
-public final class Constant extends Invokable {
+/**
+ * A constant.
+ *
+ * @author TomyLobo
+ */
+public final class Constant extends RValue {
     private final double value;
 
     public Constant(int position, double value) {
@@ -28,7 +33,7 @@ public final class Constant extends Invokable {
     }
 
     @Override
-    public double invoke() {
+    public double getValue() {
         return value;
     }
 

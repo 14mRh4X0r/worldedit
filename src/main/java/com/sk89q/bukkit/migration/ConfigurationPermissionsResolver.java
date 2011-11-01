@@ -19,32 +19,30 @@
 
 package com.sk89q.bukkit.migration;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashMap;
-import org.bukkit.util.config.Configuration;
+import java.util.*;
+
+import com.sk89q.util.yaml.YAMLNode;
+import com.sk89q.util.yaml.YAMLProcessor;
 
 public class ConfigurationPermissionsResolver implements PermissionsResolver {
-    private Configuration config;
+    private YAMLProcessor config;
     private Map<String, Set<String>> userPermissionsCache;
     private Set<String> defaultPermissionsCache;
     private Map<String, Set<String>> userGroups;
 
-    public ConfigurationPermissionsResolver(Configuration config) {
+    public ConfigurationPermissionsResolver(YAMLProcessor config) {
         this.config = config;
     }
 
-    public static void generateDefaultPerms(Configuration config) {
-        config.setProperty("permissions.groups.default.permissions", new String[] {
+    public static YAMLNode generateDefaultPerms(YAMLNode section) {
+        section.setProperty("permissions.groups.default.permissions", new String[] {
                 "worldedit.reload",
-                "worldedit.selection.*",
-                "worlds.creative.worldedit.region.*"});
-        config.setProperty("permissions.groups.admins.permissions", new String[]{"*"});
-        config.setProperty("permissions.users.sk89q.permissions", new String[]{"worldedit.*"});
-        config.setProperty("permissions.users.sk89q.groups", new String[]{"admins"});
-
+                "worldedit.selection",
+                "worlds.creative.worldedit.region"});
+        section.setProperty("permissions.groups.admins.permissions", new String[] {"*"});
+        section.setProperty("permissions.users.sk89q.permissions", new String[] {"worldedit"});
+        section.setProperty("permissions.users.sk89q.groups", new String[] {"admins"});
+        return section;
     }
 
     public void load() {
@@ -54,7 +52,7 @@ public class ConfigurationPermissionsResolver implements PermissionsResolver {
 
         Map<String, Set<String>> userGroupPermissions = new HashMap<String, Set<String>>();
 
-        List<String> groupKeys = config.getKeys("permissions.groups");
+        List<String> groupKeys = config.getStringList("permissions.groups", null);
 
         if (groupKeys != null) {
             for (String key : groupKeys) {
@@ -72,7 +70,7 @@ public class ConfigurationPermissionsResolver implements PermissionsResolver {
             }
         }
 
-        List<String> userKeys = config.getKeys("permissions.users");
+        List<String> userKeys = config.getStringList("permissions.users", null);
 
         if (userKeys != null) {
             for (String key : userKeys) {

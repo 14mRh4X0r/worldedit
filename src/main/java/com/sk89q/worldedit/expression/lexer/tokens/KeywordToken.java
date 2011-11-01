@@ -17,27 +17,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-package com.sk89q.worldedit.expression.parser;
-
-import com.sk89q.worldedit.expression.Identifiable;
+package com.sk89q.worldedit.expression.lexer.tokens;
 
 /**
- * A pseudo-token, inserted by the parser instead of the lexer.
+ * A keyword
  *
  * @author TomyLobo
  */
-public abstract class PseudoToken implements Identifiable {
-    private final int position;
+public class KeywordToken extends Token {
+    public final String value;
 
-    public PseudoToken(int position) {
-        this.position = position;
+    public KeywordToken(int position, String value) {
+        super(position);
+        this.value = value;
     }
 
     @Override
-    public abstract char id();
+    public char id() {
+        return 'k';
+    }
 
     @Override
-    public int getPosition() {
-        return position;
+    public String toString() {
+        return "KeywordToken(" + value + ")";
     }
 }

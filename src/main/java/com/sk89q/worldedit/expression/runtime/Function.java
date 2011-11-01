@@ -24,31 +24,37 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-public class Function extends Invokable {
+/**
+ * Wrapper for a Java method and its arguments (other Invokables)
+ *
+ * @author TomyLobo
+ */
+public class Function extends RValue {
+    /**
+     * Add this annotation on functions that don't always return the same value for the same inputs.
+     */
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Dynamic { }
 
     final Method method;
-    final Invokable[] args;
+    final RValue[] args;
 
-    Function(int position, Method method, Invokable... args) {
+    Function(int position, Method method, RValue... args) {
         super(position);
         this.method = method;
         this.args = args;
     }
 
     @Override
-    public final double invoke() throws EvaluationException {
+    public final double getValue() throws EvaluationException {
         try {
             return (Double) method.invoke(null, (Object[]) args);
-        }
-        catch (InvocationTargetException e) {
+        } catch (InvocationTargetException e) {
             if (e.getTargetException() instanceof EvaluationException) {
                 throw (EvaluationException) e.getTargetException();
             }
             throw new EvaluationException(-1, "Exception caught while evaluating expression", e.getTargetException());
-        }
-        catch (IllegalAccessException e) {
+        } catch (IllegalAccessException e) {
             throw new EvaluationException(-1, "Internal error while evaluating expression", e);
         }
     }
@@ -73,22 +79,26 @@ public class Function extends Invokable {
     }
 
     @Override
-    public Invokable optimize() throws EvaluationException {
-        final Invokable[] optimizedArgs = new Invokable[args.length];
+    public RValue optimize() throws EvaluationException {
+        final RValue[] optimizedArgs = new RValue[args.length];
         boolean optimizable = !method.isAnnotationPresent(Dynamic.class);
+        int position = getPosition();
         for (int i = 0; i < args.length; ++i) {
-            final Invokable optimized = optimizedArgs[i] = args[i].optimize();
+            final RValue optimized = optimizedArgs[i] = args[i].optimize();
 
             if (!(optimized instanceof Constant)) {
                 optimizable = false;
             }
+
+            if (optimized.getPosition() < position) {
+                position = optimized.getPosition();
+            }
         }
 
         if (optimizable) {
-            return new Constant(getPosition(), invoke());
-        }
-        else {
-            return new Function(getPosition(), method, optimizedArgs);
+            return new Constant(position, getValue());
+        } else {
+            return new Function(position, method, optimizedArgs);
         }
     }
 }

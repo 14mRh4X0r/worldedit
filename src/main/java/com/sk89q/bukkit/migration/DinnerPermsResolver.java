@@ -19,6 +19,7 @@
 
 package com.sk89q.bukkit.migration;
 
+import com.sk89q.util.yaml.YAMLProcessor;
 import org.bukkit.Server;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.permissions.Permission;
@@ -26,7 +27,6 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.bukkit.util.config.Configuration;
 
 public class DinnerPermsResolver implements PermissionsResolver {
 
@@ -37,11 +37,7 @@ public class DinnerPermsResolver implements PermissionsResolver {
         this.server = server;
     }
 
-    public static PermissionsResolver factory(Server server, Configuration config) {
-        if (!config.getBoolean("dinnerperms", true)) {
-            return null;
-        }
-
+    public static PermissionsResolver factory(Server server, YAMLProcessor config) {
         return new DinnerPermsResolver(server);
     }
 
@@ -54,8 +50,6 @@ public class DinnerPermsResolver implements PermissionsResolver {
             return false; // Permissions are only registered for online players
         }
         switch (internalHasPermission(perms, permission)) {
-            case 0:
-                break;
             case -1:
                 return false;
             case 1:
@@ -64,8 +58,6 @@ public class DinnerPermsResolver implements PermissionsResolver {
         int dotPos = permission.lastIndexOf(".");
         while (dotPos > -1) {
             switch (internalHasPermission(perms, permission.substring(0, dotPos + 1) + "*")) {
-                case 0:
-                    break;
                 case -1:
                     return false;
                 case 1:
@@ -116,7 +108,6 @@ public class DinnerPermsResolver implements PermissionsResolver {
             return perms.hasPermission(permission) ? 1 : -1;
         } else {
             Permission perm = server.getPluginManager().getPermission(permission);
-
             if (perm != null) {
                 return perm.getDefault().getValue(perms.isOp()) ? 1 : 0;
             } else {
