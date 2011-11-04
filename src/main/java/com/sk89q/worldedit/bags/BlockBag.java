@@ -32,13 +32,28 @@ public abstract class BlockBag {
      * Stores a block as if it was mined.
      * 
      * @param id
+     * @param data 
+     * @throws BlockBagException
+     * @deprecated Use {@link BlockBag#storeDroppedBlock(int, int)} instead
+     */
+    @Deprecated
+    public void storeDroppedBlock(int id) throws BlockBagException {
+        storeDroppedBlock(id, 0);
+    }
+    
+    /**
+     * Stores a block as if it was mined.
+     * 
+     * @param id
+     * @param data 
      * @throws BlockBagException
      */
-    public void storeDroppedBlock(int id) throws BlockBagException {
-        int dropped = BlockType.getDroppedBlock(id);
-        if (dropped > 0) {
-            storeBlock(dropped);
-        }
+    public void storeDroppedBlock(int id, int data) throws BlockBagException {
+        BaseItem dropped = BlockType.getBlockBagItem(id, data);
+        if (dropped == null) return;
+        if (dropped.getType() == BlockID.AIR) return;
+
+        storeItem(dropped);
     }
     
     /**
@@ -46,8 +61,20 @@ public abstract class BlockBag {
      *
      * @param id
      * @throws BlockBagException
+     * @deprecated Use {@link #fetchPlacedBlock(int,int)} instead
      */
     public void fetchPlacedBlock(int id) throws BlockBagException {
+        fetchPlacedBlock(id, 0);
+    }
+
+    /**
+     * Sets a block as if it was placed by hand.
+     *
+     * @param id
+     * @param data TODO
+     * @throws BlockBagException
+     */
+    public void fetchPlacedBlock(int id, int data) throws BlockBagException {
         try {
             // Blocks that can't be fetched...
             switch (id) {
@@ -56,7 +83,6 @@ public abstract class BlockBag {
             case BlockID.IRON_ORE:
             case BlockID.COAL_ORE:
             case BlockID.DIAMOND_ORE:
-            case BlockID.LEAVES:
             case BlockID.TNT:
             case BlockID.MOB_SPAWNER:
             case BlockID.CROPS:
@@ -80,49 +106,61 @@ public abstract class BlockBag {
             }
 
         } catch (OutOfBlocksException e) {
-            switch (id) {
-            case BlockID.STONE:
-                fetchBlock(BlockID.COBBLESTONE);
-                break;
+            BaseItem placed = BlockType.getBlockBagItem(id, data);
+            if (placed == null) throw e; // TODO: check
+            if (placed.getType() == BlockID.AIR) throw e; // TODO: check
 
-            case BlockID.GRASS:
-                fetchBlock(BlockID.DIRT);
-                break;
-
-            case BlockID.REDSTONE_WIRE:
-                fetchBlock(ItemID.REDSTONE_DUST);
-                break;
-
-            case BlockID.REDSTONE_TORCH_OFF:
-                fetchBlock(BlockID.REDSTONE_TORCH_ON);
-                break;
-
-            case BlockID.WALL_SIGN:
-            case BlockID.SIGN_POST:
-                fetchBlock(ItemID.SIGN);
-                break;
-
-            default:
-                throw e;
-            }
+            fetchItem(placed);
         }
     }
 
     /**
      * Get a block.
      *
+     * Either this method or fetchItem needs to be overridden
+     *
      * @param id
      * @throws BlockBagException 
      */
-    public abstract void fetchBlock(int id) throws BlockBagException;
-    
+    public void fetchBlock(int id) throws BlockBagException {
+        fetchItem(new BaseItem(id));
+    }
+
+    /**
+     * Get a block.
+     *
+     * Either this method or fetchBlock needs to be overridden
+     *
+     * @param item
+     * @throws BlockBagException 
+     */
+    public void fetchItem(BaseItem item) throws BlockBagException {
+        fetchBlock(item.getType());
+    }
+
     /**
      * Store a block.
+     * 
+     * Either this method or storeItem needs to be overridden
      * 
      * @param id
      * @throws BlockBagException 
      */
-    public abstract void storeBlock(int id) throws BlockBagException;
+    public void storeBlock(int id) throws BlockBagException {
+        storeItem(new BaseItem(id));
+    }
+    
+    /**
+     * Store a block.
+     * 
+     * Either this method or storeBlock needs to be overridden
+     * 
+     * @param item
+     * @throws BlockBagException 
+     */
+    public void storeItem(BaseItem item) throws BlockBagException {
+        storeBlock(item.getType());
+    }
     
     /**
      * Checks to see if a block exists without removing it.

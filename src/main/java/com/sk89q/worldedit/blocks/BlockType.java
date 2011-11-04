@@ -303,23 +303,16 @@ public enum BlockType {
         shouldPlaceLast.add(BlockID.FIRE);
         shouldPlaceLast.add(BlockID.REDSTONE_WIRE);
         shouldPlaceLast.add(BlockID.CROPS);
-        shouldPlaceLast.add(BlockID.SIGN_POST);
-        shouldPlaceLast.add(BlockID.WOODEN_DOOR);
         shouldPlaceLast.add(BlockID.LADDER);
         shouldPlaceLast.add(BlockID.MINECART_TRACKS);
-        shouldPlaceLast.add(BlockID.WALL_SIGN);
         shouldPlaceLast.add(BlockID.LEVER);
         shouldPlaceLast.add(BlockID.STONE_PRESSURE_PLATE);
-        shouldPlaceLast.add(BlockID.IRON_DOOR);
         shouldPlaceLast.add(BlockID.WOODEN_PRESSURE_PLATE);
         shouldPlaceLast.add(BlockID.REDSTONE_TORCH_OFF);
         shouldPlaceLast.add(BlockID.REDSTONE_TORCH_ON);
         shouldPlaceLast.add(BlockID.STONE_BUTTON);
         shouldPlaceLast.add(BlockID.SNOW);
-        shouldPlaceLast.add(BlockID.CACTUS);
-        shouldPlaceLast.add(BlockID.REED);
         shouldPlaceLast.add(BlockID.PORTAL);
-        shouldPlaceLast.add(BlockID.CAKE_BLOCK);
         shouldPlaceLast.add(BlockID.REDSTONE_REPEATER_OFF);
         shouldPlaceLast.add(BlockID.REDSTONE_REPEATER_ON);
         shouldPlaceLast.add(BlockID.TRAP_DOOR);
@@ -345,6 +338,32 @@ public enum BlockType {
      */
     public boolean shouldPlaceLast() {
         return shouldPlaceLast.contains(id);
+    }
+
+    /**
+     * HashSet for shouldPlaceLast.
+     */
+    private static final Set<Integer> shouldPlaceFinal = new HashSet<Integer>();
+    static {
+        shouldPlaceLast.add(BlockID.SIGN_POST);
+        shouldPlaceLast.add(BlockID.WOODEN_DOOR);
+        shouldPlaceLast.add(BlockID.WALL_SIGN);
+        shouldPlaceLast.add(BlockID.IRON_DOOR);
+        shouldPlaceLast.add(BlockID.CACTUS);
+        shouldPlaceLast.add(BlockID.REED);
+        shouldPlaceLast.add(BlockID.CAKE_BLOCK);
+    }
+
+    /**
+     * Checks to see whether a block should be placed in the final queue.
+     *
+     * This applies to blocks that can be attached to other blocks that have an attachment.
+     *
+     * @param id
+     * @return
+     */
+    public static boolean shouldPlaceFinal(int id) {
+        return shouldPlaceFinal.contains(id);
     }
 
     /**
@@ -838,118 +857,183 @@ public enum BlockType {
     }
 
     /**
-     * HashMap for getDroppedBlock.
+     * HashMap for getBlockBagItem.
      */
-    private static final Map<Integer, Integer> blockDrops = new HashMap<Integer, Integer>();
+    private static final Map<Integer, BaseItem> dataBlockBagItems = new HashMap<Integer, BaseItem>();
+    private static final Map<Integer, BaseItem> nonDataBlockBagItems = new HashMap<Integer, BaseItem>();
+    private static final BaseItem doNotDestroy = new BaseItemStack(BlockID.AIR, 0);
     static {
-        blockDrops.put(BlockID.STONE, BlockID.COBBLESTONE);
-        blockDrops.put(BlockID.GRASS, BlockID.DIRT);
-        blockDrops.put(BlockID.DIRT, BlockID.DIRT);
-        blockDrops.put(BlockID.COBBLESTONE, BlockID.COBBLESTONE);
-        blockDrops.put(BlockID.WOOD, BlockID.WOOD);
-        blockDrops.put(BlockID.SAPLING, BlockID.SAPLING);
-        blockDrops.put(BlockID.BEDROCK, -1);
-        blockDrops.put(BlockID.SAND, BlockID.SAND);
-        blockDrops.put(BlockID.GRAVEL, BlockID.GRAVEL);
-        blockDrops.put(BlockID.GOLD_ORE, BlockID.GOLD_ORE);
-        blockDrops.put(BlockID.IRON_ORE, BlockID.IRON_ORE);
-        blockDrops.put(BlockID.COAL_ORE, BlockID.COAL_ORE);
-        blockDrops.put(BlockID.LOG, BlockID.LOG);
-        blockDrops.put(BlockID.LEAVES, BlockID.LEAVES);
-        blockDrops.put(BlockID.SPONGE, BlockID.SPONGE);
-        blockDrops.put(BlockID.GLASS, BlockID.GLASS); // Have to drop glass for //undo
-        blockDrops.put(BlockID.LAPIS_LAZULI_ORE, BlockID.LAPIS_LAZULI_ORE); // Block damage drops not implemented
-        blockDrops.put(BlockID.LAPIS_LAZULI_BLOCK, BlockID.LAPIS_LAZULI_BLOCK);
-        blockDrops.put(BlockID.DISPENSER, BlockID.DISPENSER);
-        blockDrops.put(BlockID.SANDSTONE, BlockID.SANDSTONE);
-        blockDrops.put(BlockID.NOTE_BLOCK, BlockID.NOTE_BLOCK);
-        blockDrops.put(BlockID.BED, ItemID.BED_ITEM);
-        blockDrops.put(BlockID.POWERED_RAIL, BlockID.POWERED_RAIL);
-        blockDrops.put(BlockID.DETECTOR_RAIL, BlockID.DETECTOR_RAIL);
-        blockDrops.put(BlockID.WEB, BlockID.WEB);
-        blockDrops.put(BlockID.PISTON_EXTENSION, -1);
-        blockDrops.put(BlockID.CLOTH, BlockID.CLOTH);
-        blockDrops.put(BlockID.PISTON_MOVING_PIECE, -1);
-        blockDrops.put(BlockID.YELLOW_FLOWER, BlockID.YELLOW_FLOWER);
-        blockDrops.put(BlockID.RED_FLOWER, BlockID.RED_FLOWER);
-        blockDrops.put(BlockID.BROWN_MUSHROOM, BlockID.BROWN_MUSHROOM);
-        blockDrops.put(BlockID.RED_MUSHROOM, BlockID.RED_MUSHROOM);
-        blockDrops.put(BlockID.GOLD_BLOCK, BlockID.GOLD_BLOCK);
-        blockDrops.put(BlockID.IRON_BLOCK, BlockID.IRON_BLOCK);
-        blockDrops.put(BlockID.DOUBLE_STEP, BlockID.DOUBLE_STEP);
-        blockDrops.put(BlockID.STEP, BlockID.STEP);
-        blockDrops.put(BlockID.BRICK, BlockID.BRICK);
-        blockDrops.put(BlockID.BOOKCASE, BlockID.BOOKCASE);
-        blockDrops.put(BlockID.MOSSY_COBBLESTONE, BlockID.MOSSY_COBBLESTONE);
-        blockDrops.put(BlockID.OBSIDIAN, BlockID.OBSIDIAN);
-        blockDrops.put(BlockID.TORCH, BlockID.TORCH);
-        blockDrops.put(BlockID.WOODEN_STAIRS, BlockID.WOODEN_STAIRS);
-        blockDrops.put(BlockID.CHEST, BlockID.CHEST);
-        blockDrops.put(BlockID.REDSTONE_WIRE, ItemID.REDSTONE_DUST);
-        blockDrops.put(BlockID.DIAMOND_ORE, ItemID.DIAMOND);
-        blockDrops.put(BlockID.DIAMOND_BLOCK, BlockID.DIAMOND_BLOCK);
-        blockDrops.put(BlockID.WORKBENCH, BlockID.WORKBENCH);
-        blockDrops.put(BlockID.CROPS, ItemID.SEEDS);
-        blockDrops.put(BlockID.SOIL, BlockID.SOIL);
-        blockDrops.put(BlockID.FURNACE, BlockID.FURNACE);
-        blockDrops.put(BlockID.BURNING_FURNACE, BlockID.FURNACE);
-        blockDrops.put(BlockID.SIGN_POST, ItemID.SIGN);
-        blockDrops.put(BlockID.WOODEN_DOOR, ItemID.WOODEN_DOOR_ITEM);
-        blockDrops.put(BlockID.LADDER, BlockID.LADDER);
-        blockDrops.put(BlockID.MINECART_TRACKS, BlockID.MINECART_TRACKS);
-        blockDrops.put(BlockID.COBBLESTONE_STAIRS, BlockID.COBBLESTONE_STAIRS);
-        blockDrops.put(BlockID.WALL_SIGN, ItemID.SIGN);
-        blockDrops.put(BlockID.LEVER, BlockID.LEVER);
-        blockDrops.put(BlockID.STONE_PRESSURE_PLATE, BlockID.STONE_PRESSURE_PLATE);
-        blockDrops.put(BlockID.IRON_DOOR, ItemID.IRON_DOOR_ITEM);
-        blockDrops.put(BlockID.WOODEN_PRESSURE_PLATE, BlockID.WOODEN_PRESSURE_PLATE);
-        blockDrops.put(BlockID.REDSTONE_ORE, ItemID.REDSTONE_DUST);
-        blockDrops.put(BlockID.GLOWING_REDSTONE_ORE, ItemID.REDSTONE_DUST);
-        blockDrops.put(BlockID.REDSTONE_TORCH_OFF, BlockID.REDSTONE_TORCH_ON);
-        blockDrops.put(BlockID.REDSTONE_TORCH_ON, BlockID.REDSTONE_TORCH_ON);
-        blockDrops.put(BlockID.STONE_BUTTON, BlockID.STONE_BUTTON);
-        blockDrops.put(BlockID.SNOW, ItemID.SNOWBALL);
-        blockDrops.put(BlockID.ICE, BlockID.ICE);
-        blockDrops.put(BlockID.SNOW_BLOCK, BlockID.SNOW_BLOCK);
-        blockDrops.put(BlockID.CLAY, BlockID.CLAY);
-        blockDrops.put(BlockID.REED, ItemID.SUGAR_CANE_ITEM);
-        blockDrops.put(BlockID.JUKEBOX, BlockID.JUKEBOX);
-        blockDrops.put(BlockID.FENCE, BlockID.FENCE);
-        blockDrops.put(BlockID.PUMPKIN, BlockID.PUMPKIN);
-        blockDrops.put(BlockID.NETHERRACK, BlockID.NETHERRACK);
-        blockDrops.put(BlockID.SLOW_SAND, BlockID.SLOW_SAND);
-        blockDrops.put(BlockID.LIGHTSTONE, ItemID.LIGHTSTONE_DUST);
-        blockDrops.put(BlockID.JACKOLANTERN, BlockID.JACKOLANTERN);
-        blockDrops.put(BlockID.CAKE_BLOCK, ItemID.CAKE_ITEM);
-        blockDrops.put(BlockID.REDSTONE_REPEATER_OFF, ItemID.REDSTONE_REPEATER);
-        blockDrops.put(BlockID.REDSTONE_REPEATER_ON, ItemID.REDSTONE_REPEATER);
-        blockDrops.put(BlockID.LOCKED_CHEST, BlockID.LOCKED_CHEST);
-        blockDrops.put(BlockID.TRAP_DOOR, BlockID.TRAP_DOOR);
-        blockDrops.put(BlockID.SILVERFISH_BLOCK, -1);
-        blockDrops.put(BlockID.STONE_BRICK, BlockID.STONE_BRICK);
-        blockDrops.put(BlockID.BROWN_MUSHROOM_CAP, BlockID.BROWN_MUSHROOM_CAP);
-        blockDrops.put(BlockID.RED_MUSHROOM_CAP, BlockID.RED_MUSHROOM_CAP);
-        blockDrops.put(BlockID.IRON_BARS, BlockID.IRON_BARS);
-        blockDrops.put(BlockID.GLASS_PANE, BlockID.GLASS_PANE);
-        blockDrops.put(BlockID.MELON_BLOCK, BlockID.MELON_BLOCK);
-        blockDrops.put(BlockID.PUMPKIN_STEM, BlockID.PUMPKIN_STEM);
-        blockDrops.put(BlockID.MELON_STEM, BlockID.MELON_STEM);
-        blockDrops.put(BlockID.VINE, -1);
-        blockDrops.put(BlockID.FENCE_GATE, BlockID.FENCE_GATE);
-        blockDrops.put(BlockID.BRICK_STAIRS, BlockID.BRICK);
-        blockDrops.put(BlockID.STONE_BRICK_STAIRS, BlockID.STONE_BRICK);
-        blockDrops.put(BlockID.MYCELIUM, BlockID.DIRT);
-        blockDrops.put(BlockID.LILY_PAD, BlockID.LILY_PAD);
-        blockDrops.put(BlockID.NETHER_BRICK, BlockID.NETHER_BRICK);
-        blockDrops.put(BlockID.NETHER_BRICK_FENCE, BlockID.NETHER_BRICK_FENCE);
-        blockDrops.put(BlockID.NETHER_BRICK_STAIRS, BlockID.NETHER_BRICK);
-        blockDrops.put(BlockID.NETHER_WART, ItemID.NETHER_WART_SEED);
-        blockDrops.put(BlockID.ENCHANTMENT_TABLE, BlockID.ENCHANTMENT_TABLE);
-        blockDrops.put(BlockID.BREWING_STAND, ItemID.BREWING_STAND);
-        blockDrops.put(BlockID.CAULDRON, ItemID.CAULDRON);
-        blockDrops.put(BlockID.END_PORTAL, -1);
-        blockDrops.put(BlockID.END_PORTAL_FRAME, -1);
-        blockDrops.put(BlockID.END_STONE, BlockID.END_STONE);
+        /*
+         * rules:
+         * 
+         * 1. block yields itself => addIdentity
+         * 2. block is part of a 2-block object => drop an appropriate item for one of the 2 blocks
+         * 3. block can be placed by right-clicking an obtainable item on the ground => use that item
+         * 4. block yields more than one item => addIdentity
+         * 5. block yields exactly one item => use that item
+         * 6. block is a liquid => drop nothing
+         * 7. block is created from thin air by the game other than by the map generator => drop nothing
+         */
+
+        nonDataBlockBagItems.put(BlockID.STONE, new BaseItem(BlockID.COBBLESTONE)); // rule 5
+        nonDataBlockBagItems.put(BlockID.GRASS, new BaseItem(BlockID.DIRT)); // rule 5
+        addIdentity(BlockID.DIRT); // rule 1
+        addIdentity(BlockID.COBBLESTONE); // rule 1
+        addIdentity(BlockID.WOOD); // rule 1
+        addIdentities(BlockID.SAPLING, 3); // rule 1
+        nonDataBlockBagItems.put(BlockID.BEDROCK, doNotDestroy); // exception
+        // WATER, rule 6
+        // STATIONARY_WATER, rule 6
+        // LAVA, rule 6
+        // STATIONARY_LAVA, rule 6
+        addIdentity(BlockID.SAND); // rule 1
+        addIdentity(BlockID.GRAVEL); // rule 1
+        addIdentity(BlockID.GOLD_ORE); // rule 1
+        addIdentity(BlockID.IRON_ORE); // rule 1
+        nonDataBlockBagItems.put(BlockID.COAL_ORE, new BaseItem(ItemID.COAL)); // rule 5
+        addIdentities(BlockID.LOG, 3); // rule 1
+        addIdentities(BlockID.LEAVES, 4); // rule 1 with shears, otherwise rule 3
+        addIdentity(BlockID.SPONGE); // rule 1
+        addIdentity(BlockID.GLASS); // rule 3
+        addIdentity(BlockID.LAPIS_LAZULI_ORE); // rule 4
+        addIdentity(BlockID.LAPIS_LAZULI_BLOCK); // rule 1
+        addIdentity(BlockID.DISPENSER); // rule 1
+        addIdentity(BlockID.SANDSTONE); // rule 1
+        addIdentity(BlockID.NOTE_BLOCK); // rule 1
+        addIdentities(BlockID.BED, 8); // rule 2
+        addIdentity(BlockID.POWERED_RAIL); // rule 1
+        addIdentity(BlockID.DETECTOR_RAIL); // rule 1
+        addIdentity(BlockID.PISTON_STICKY_BASE);
+        nonDataBlockBagItems.put(BlockID.WEB, new BaseItem(ItemID.STRING)); // rule 5
+        // LONG_GRASS
+        // DEAD_BUSH
+        addIdentity(BlockID.PISTON_BASE);
+        // PISTON_EXTENSION, rule 7
+        addIdentities(BlockID.CLOTH, 16); // rule 1
+        // PISTON_MOVING_PIECE, rule 7
+        addIdentity(BlockID.YELLOW_FLOWER); // rule 1
+        addIdentity(BlockID.RED_FLOWER); // rule 1
+        addIdentity(BlockID.BROWN_MUSHROOM); // rule 1
+        addIdentity(BlockID.RED_MUSHROOM); // rule 1
+        addIdentity(BlockID.GOLD_BLOCK); // rule 1
+        addIdentity(BlockID.IRON_BLOCK); // rule 1
+        addIdentities(BlockID.DOUBLE_STEP, 7); // rule 3
+        addIdentities(BlockID.STEP, 7); // rule 1
+        addIdentity(BlockID.BRICK); // rule 1
+        addIdentity(BlockID.TNT);
+        addIdentity(BlockID.BOOKCASE); // rule 3
+        addIdentity(BlockID.MOSSY_COBBLESTONE); // rule 1
+        addIdentity(BlockID.OBSIDIAN); // rule 1
+        addIdentity(BlockID.TORCH); // rule 1
+        // FIRE
+        // MOB_SPAWNER
+        addIdentity(BlockID.WOODEN_STAIRS); // rule 3
+        addIdentity(BlockID.CHEST); // rule 1
+        nonDataBlockBagItems.put(BlockID.REDSTONE_WIRE, new BaseItem(ItemID.REDSTONE_DUST)); // rule 3
+        nonDataBlockBagItems.put(BlockID.DIAMOND_ORE, new BaseItem(ItemID.DIAMOND)); // rule 5
+        addIdentity(BlockID.DIAMOND_BLOCK); // rule 1
+        addIdentity(BlockID.WORKBENCH); // rule 1
+        nonDataBlockBagItems.put(BlockID.CROPS, new BaseItem(ItemID.SEEDS)); // rule 3
+        nonDataBlockBagItems.put(BlockID.SOIL, new BaseItem(BlockID.DIRT)); // rule 5
+        addIdentity(BlockID.FURNACE); // rule 1
+        nonDataBlockBagItems.put(BlockID.BURNING_FURNACE, new BaseItem(BlockID.FURNACE));
+        nonDataBlockBagItems.put(BlockID.SIGN_POST, new BaseItem(ItemID.SIGN)); // rule 3
+        addIdentities(BlockID.WOODEN_DOOR, 8); // rule 2
+        addIdentity(BlockID.LADDER); // rule 1
+        addIdentity(BlockID.MINECART_TRACKS); // rule 1
+        addIdentity(BlockID.COBBLESTONE_STAIRS); // rule 3
+        nonDataBlockBagItems.put(BlockID.WALL_SIGN, new BaseItem(ItemID.SIGN)); // rule 3
+        addIdentity(BlockID.LEVER); // rule 1
+        addIdentity(BlockID.STONE_PRESSURE_PLATE); // rule 1
+        addIdentities(BlockID.IRON_DOOR, 8); // rule 2
+        addIdentity(BlockID.WOODEN_PRESSURE_PLATE); // rule 1
+        addIdentity(BlockID.REDSTONE_ORE);  // rule 4
+        nonDataBlockBagItems.put(BlockID.GLOWING_REDSTONE_ORE, new BaseItem(BlockID.REDSTONE_ORE)); // rule 4
+        nonDataBlockBagItems.put(BlockID.REDSTONE_TORCH_OFF, new BaseItem(BlockID.REDSTONE_TORCH_ON)); // rule 3
+        addIdentity(BlockID.REDSTONE_TORCH_ON); // rule 1
+        addIdentity(BlockID.STONE_BUTTON); // rule 1
+        addIdentity(BlockID.SNOW); // rule 1
+        addIdentity(BlockID.ICE); // exception
+        addIdentity(BlockID.SNOW_BLOCK); // rule 3
+        addIdentity(BlockID.CACTUS);
+        addIdentity(BlockID.CLAY); // rule 3
+        nonDataBlockBagItems.put(BlockID.REED, new BaseItem(ItemID.SUGAR_CANE_ITEM)); // rule 3
+        addIdentity(BlockID.JUKEBOX); // rule 1
+        addIdentity(BlockID.FENCE); // rule 1
+        addIdentity(BlockID.PUMPKIN); // rule 1
+        addIdentity(BlockID.NETHERRACK); // rule 1
+        addIdentity(BlockID.SLOW_SAND); // rule 1
+        addIdentity(BlockID.LIGHTSTONE); // rule 4
+        // PORTAL
+        addIdentity(BlockID.JACKOLANTERN); // rule 1
+        nonDataBlockBagItems.put(BlockID.CAKE_BLOCK, new BaseItem(ItemID.CAKE_ITEM)); // rule 3
+        nonDataBlockBagItems.put(BlockID.REDSTONE_REPEATER_OFF, new BaseItem(ItemID.REDSTONE_REPEATER)); // rule 3
+        nonDataBlockBagItems.put(BlockID.REDSTONE_REPEATER_ON, new BaseItem(ItemID.REDSTONE_REPEATER)); // rule 3
+        addIdentity(BlockID.LOCKED_CHEST); // ???
+        addIdentity(BlockID.TRAP_DOOR); // rule 1
+        nonDataBlockBagItems.put(BlockID.SILVERFISH_BLOCK, doNotDestroy); // exception
+        addIdentity(BlockID.STONE_BRICK); // rule 1
+        addIdentity(BlockID.BROWN_MUSHROOM_CAP);
+        addIdentity(BlockID.RED_MUSHROOM_CAP);
+        addIdentity(BlockID.IRON_BARS); // rule 1
+        addIdentity(BlockID.GLASS_PANE); // rule 1
+        addIdentity(BlockID.MELON_BLOCK); // rule 3
+        nonDataBlockBagItems.put(BlockID.PUMPKIN_STEM, new BaseItem(ItemID.PUMPKIN_SEEDS)); // rule 3
+        nonDataBlockBagItems.put(BlockID.MELON_STEM, new BaseItem(ItemID.MELON_SEEDS)); // rule 3
+        nonDataBlockBagItems.put(BlockID.VINE, doNotDestroy); // exception
+        addIdentity(BlockID.FENCE_GATE); // rule 1
+        addIdentity(BlockID.BRICK_STAIRS); // rule 3
+        addIdentity(BlockID.STONE_BRICK_STAIRS); // rule 3
+
+        // 1.9 blocks
+        nonDataBlockBagItems.put(BlockID.MYCELIUM, new BaseItem(BlockID.DIRT));
+        addIdentity(BlockID.LILY_PAD);
+        addIdentity(BlockID.NETHER_BRICK);
+        addIdentity(BlockID.NETHER_BRICK_FENCE);
+        addIdentity(BlockID.NETHER_BRICK_STAIRS);
+        nonDataBlockBagItems.put(BlockID.NETHER_WART, new BaseItem(ItemID.NETHER_WART_SEED));
+        addIdentity(BlockID.ENCHANTMENT_TABLE);
+        nonDataBlockBagItems.put(BlockID.BREWING_STAND, new BaseItem(ItemID.BREWING_STAND));
+        nonDataBlockBagItems.put(BlockID.CAULDRON, new BaseItem(ItemID.CAULDRON));
+        nonDataBlockBagItems.put(BlockID.END_PORTAL, doNotDestroy);
+        nonDataBlockBagItems.put(BlockID.END_PORTAL_FRAME, doNotDestroy);
+        addIdentity(BlockID.END_STONE);
+    }
+
+    /**
+     * Get the block or item that this block can be constructed from. If nothing is
+     * dropped, a block with a BaseItemStack of type AIR and size 0 will be returned.
+     * If the block should not be destroyed (i.e. bedrock), null will be returned.
+     *
+     * @param type
+     * @param data
+     * @return
+     */
+    public static BaseItem getBlockBagItem(int type, int data) {
+        BaseItem dropped = nonDataBlockBagItems.get(type);
+        if (dropped != null) return dropped;
+
+        dropped = dataBlockBagItems.get(typeDataKey(type, data));
+
+        if (dropped == null) {
+            return new BaseItemStack(BlockID.AIR, 0);
+        }
+
+        if (dropped == doNotDestroy) {
+            return null;
+        }
+
+        return dropped;
+    }
+
+    private static void addIdentity(int type) {
+        nonDataBlockBagItems.put(type, new BaseItem(type));
+    }
+    
+    private static void addIdentities(int type, int maxData) {
+        for (int data = 0; data < maxData; ++data) {
+            dataBlockBagItems.put(typeDataKey(type, data), new BaseItem(BlockID.LEAVES, (short) data));
+        }
     }
 
     /**
@@ -963,11 +1047,11 @@ public enum BlockType {
      */
     @Deprecated
     public static int getDroppedBlock(int id) {
-        Integer dropped = blockDrops.get(id);
+        BaseItem dropped = nonDataBlockBagItems.get(id);
         if (dropped == null) {
             return BlockID.AIR;
         }
-        return dropped;
+        return dropped.getType();
     }
 
     public BaseItemStack getBlockDrop(short data) {
@@ -1162,8 +1246,8 @@ public enum BlockType {
         nonDataAttachments.put(BlockID.LONG_GRASS, PlayerDirection.DOWN);
         nonDataAttachments.put(BlockID.DEAD_BUSH, PlayerDirection.DOWN);
         for (int offset = 0; offset <= 8; offset += 8) {
-            dataAttachments.put(attachmentKey(BlockID.PISTON_EXTENSION, offset + 0), PlayerDirection.UP);
-            dataAttachments.put(attachmentKey(BlockID.PISTON_EXTENSION, offset + 1), PlayerDirection.DOWN);
+            dataAttachments.put(typeDataKey(BlockID.PISTON_EXTENSION, offset + 0), PlayerDirection.UP);
+            dataAttachments.put(typeDataKey(BlockID.PISTON_EXTENSION, offset + 1), PlayerDirection.DOWN);
             addCardinals(BlockID.PISTON_EXTENSION, offset + 2, offset + 5, offset + 3, offset + 4);
         }
         nonDataAttachments.put(BlockID.YELLOW_FLOWER, PlayerDirection.DOWN);
@@ -1171,7 +1255,7 @@ public enum BlockType {
         nonDataAttachments.put(BlockID.BROWN_MUSHROOM, PlayerDirection.DOWN);
         nonDataAttachments.put(BlockID.RED_MUSHROOM, PlayerDirection.DOWN);
         for (int blockId : new int[] { BlockID.TORCH, BlockID.REDSTONE_TORCH_ON, BlockID.REDSTONE_TORCH_OFF }) {
-            dataAttachments.put(attachmentKey(blockId, 5), PlayerDirection.DOWN);
+            dataAttachments.put(typeDataKey(blockId, 5), PlayerDirection.DOWN);
             addCardinals(blockId, 4, 1, 3, 2);
         }
         nonDataAttachments.put(BlockID.REDSTONE_WIRE, PlayerDirection.DOWN);
@@ -1183,8 +1267,8 @@ public enum BlockType {
         addCardinals(BlockID.WALL_SIGN, 2, 5, 3, 4);
         for (int offset = 0; offset <= 8; offset += 8) {
             addCardinals(BlockID.LEVER, offset + 4, offset + 1, offset + 3, offset + 2);
-            dataAttachments.put(attachmentKey(BlockID.LEVER, offset + 5), PlayerDirection.DOWN);
-            dataAttachments.put(attachmentKey(BlockID.LEVER, offset + 6), PlayerDirection.DOWN);
+            dataAttachments.put(typeDataKey(BlockID.LEVER, offset + 5), PlayerDirection.DOWN);
+            dataAttachments.put(typeDataKey(BlockID.LEVER, offset + 6), PlayerDirection.DOWN);
         }
         nonDataAttachments.put(BlockID.STONE_PRESSURE_PLATE, PlayerDirection.DOWN);
         nonDataAttachments.put(BlockID.IRON_DOOR, PlayerDirection.DOWN);
@@ -1204,7 +1288,7 @@ public enum BlockType {
         nonDataAttachments.put(BlockID.PUMPKIN_STEM, PlayerDirection.DOWN);
         nonDataAttachments.put(BlockID.MELON_STEM, PlayerDirection.DOWN);
         // vines are complicated, but I'll list the single-attachment variants anyway
-        dataAttachments.put(attachmentKey(BlockID.VINE, 0), PlayerDirection.UP);
+        dataAttachments.put(typeDataKey(BlockID.VINE, 0), PlayerDirection.UP);
         addCardinals(BlockID.VINE, 1, 2, 4, 8);
         nonDataAttachments.put(BlockID.NETHER_WART, PlayerDirection.DOWN);
     }
@@ -1221,17 +1305,17 @@ public enum BlockType {
         PlayerDirection direction = nonDataAttachments.get(type);
         if (direction != null) return direction;
 
-        return dataAttachments.get(attachmentKey(type, data));
+        return dataAttachments.get(typeDataKey(type, data));
     }
 
-    private static int attachmentKey(int type, int data) {
+    private static int typeDataKey(int type, int data) {
         return (type << 4) | (data & 0xf);
     }
 
     private static void addCardinals(int type, int west, int north, int east, int south) {
-        dataAttachments.put(attachmentKey(type, west), PlayerDirection.WEST);
-        dataAttachments.put(attachmentKey(type, north), PlayerDirection.NORTH);
-        dataAttachments.put(attachmentKey(type, east), PlayerDirection.EAST);
-        dataAttachments.put(attachmentKey(type, south), PlayerDirection.SOUTH);
+        dataAttachments.put(typeDataKey(type, west), PlayerDirection.WEST);
+        dataAttachments.put(typeDataKey(type, north), PlayerDirection.NORTH);
+        dataAttachments.put(typeDataKey(type, east), PlayerDirection.EAST);
+        dataAttachments.put(typeDataKey(type, south), PlayerDirection.SOUTH);
     }
 }
