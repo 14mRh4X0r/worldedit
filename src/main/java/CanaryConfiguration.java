@@ -106,7 +106,7 @@ public class CanaryConfiguration extends LocalConfiguration {
         }
 
         allowedDataCycleBlocks = new HashSet<Integer>();
-        for (String b : properties.getString("allowed-data-cycle-blocks", null).split(",")) {
+        for (String b : properties.getString("allowed-data-cycle-blocks", "").split(",")) {
             try {
                 allowedDataCycleBlocks.add(Integer.parseInt(b));
             } catch (NumberFormatException e) {

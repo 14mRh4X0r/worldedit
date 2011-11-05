@@ -652,7 +652,7 @@ public class HMWorld extends LocalWorld {
     }
 
     @Override
-    public void checkLoadedChuck(Vector pt) {
+    public void checkLoadedChunk(Vector pt) {
         if (!world.isChunkLoaded(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ()))
             world.loadChunk(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
     }
