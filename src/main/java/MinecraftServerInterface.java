@@ -109,4 +109,16 @@ public class MinecraftServerInterface {
             throw e;
         }
     }
+
+    static boolean generateBirchTree(EditSession editSession, Vector pt) {
+        return performWorldGen(editSession, pt, new OWorldGenForest());
+    }
+
+    static boolean generateRedwoodTree(EditSession editSession, Vector pt) {
+        return performWorldGen(editSession, pt, new OWorldGenTaiga2());
+    }
+
+    static boolean generateTallRedwoodTree(EditSession editSession, Vector pt) {
+        return performWorldGen(editSession, pt, new OWorldGenTaiga1());
+    }
 }

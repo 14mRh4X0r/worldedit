@@ -72,18 +72,21 @@ public class HMWorldEditListener extends PluginListener {
      * Called on right click.
      *
      * @param player
-     * @param blockPlaced
      * @param blockClicked
      * @param itemInHand
      * @return false if you want the action to go through
      */
     @Override
-    //@SuppressWarnings("deprecation")
-    public boolean onBlockCreate(Player player, Block blockPlaced,
-            Block blockClicked, int itemInHand) {
+    public boolean onBlockRightClick(Player player, Block blockClicked, 
+            Item itemInHand) {
         WorldVector pos = new WorldVector(new HMWorld(player.getWorld()), blockClicked.getX(),
                 blockClicked.getY(), blockClicked.getZ());
         return controller.handleBlockRightClick(wrapPlayer(player), pos);
+    }
+
+    @Override
+    public boolean onItemUse(Player player, Block blockPlaced, Block blockClicked, Item itemInHand) {
+        return controller.handleRightClick(wrapPlayer(player));
     }
 
     /**

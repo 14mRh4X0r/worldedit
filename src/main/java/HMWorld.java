@@ -343,27 +343,7 @@ public class HMWorld extends LocalWorld {
      */
     @Override
     public int killMobs(Vector origin, int radius) {
-        int killed = 0;
-        
-        for (Mob mob : world.getMobList()) {
-            Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
-            if (mob.getHealth() > 0
-                    && (radius == -1 || mobPos.distance(origin) <= radius)) {
-                mob.setHealth(0);
-                killed++;
-            }
-        }
-        
-        for (Mob mob : world.getAnimalList()) {
-            Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
-            if (mob.getHealth() > 0
-                    && (radius == -1 || mobPos.distance(origin) <= radius)) {
-                mob.setHealth(0);
-                killed++;
-            }
-        }
-        
-        return killed;
+        return killMobs(origin, radius, false);
     }
 
     @Override
@@ -498,42 +478,187 @@ public class HMWorld extends LocalWorld {
 
     @Override
     public boolean copyFromWorld(Vector pt, BaseBlock block) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        // Signs
+        if (block instanceof SignBlock) {
+            ((SignBlock) block).setText(getSignText(pt));
+            return true;
+        
+        // Furnaces
+        } else if (block instanceof FurnaceBlock) {
+            ComplexBlock canaryBlock = world.getOnlyComplexBlock(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
+            if (canaryBlock == null || !(canaryBlock instanceof Furnace)) return false;
+            Furnace canary = (Furnace) canaryBlock;
+            FurnaceBlock we = (FurnaceBlock) block;
+            we.setBurnTime(canary.getBurnTime());
+            we.setCookTime(canary.getCookTime());
+            ((ContainerBlock) block).setItems(getContainerBlockContents(pt));
+            return true;
+
+        // Chests/dispenser
+        } else if (block instanceof ContainerBlock) {
+            ((ContainerBlock) block).setItems(getContainerBlockContents(pt));
+            return true;
+        
+        // Mob spawners
+        } else if (block instanceof MobSpawnerBlock) {
+            ComplexBlock canaryBlock = world.getOnlyComplexBlock(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
+            if (canaryBlock == null || !(canaryBlock instanceof MobSpawner)) return false;
+            MobSpawner canary = (MobSpawner) canaryBlock;
+            MobSpawnerBlock we = (MobSpawnerBlock) block;
+            we.setMobType(canary.getSpawn());
+            we.setDelay((short) canary.spawner.a);
+            return true;
+        
+        // Note block
+        } else if (block instanceof com.sk89q.worldedit.blocks.NoteBlock) {
+            ComplexBlock canaryBlock = world.getOnlyComplexBlock(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
+            if (canaryBlock == null || !(canaryBlock instanceof NoteBlock)) return false;
+            NoteBlock canary = (NoteBlock) canaryBlock;
+            com.sk89q.worldedit.blocks.NoteBlock we = (com.sk89q.worldedit.blocks.NoteBlock) block;
+            we.setNote(canary.getNote());
+        }
+        
+        return false;
     }
 
     @Override
     public boolean clearContainerBlockContents(Vector pt) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        ComplexBlock block = world.getOnlyComplexBlock(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
+        if (block == null || !(block instanceof BaseContainerBlock)) {
+            return false;
+        }
+
+        BaseContainerBlock chest = (BaseContainerBlock) block;
+        chest.clearContents();
+        return true;
     }
 
     @Override
     public boolean generateBirchTree(EditSession editSession, Vector pt) throws MaxChangedBlocksException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        try {
+            return MinecraftServerInterface.generateBirchTree(editSession, pt);
+        } catch (Throwable t) {
+            logger.log(Level.SEVERE, 
+                    "Failed to create big tree (do you need to update WorldEdit " +
+                    "due to a Minecraft update?)", t);
+            return false;
+        }
     }
 
     @Override
     public boolean generateRedwoodTree(EditSession editSession, Vector pt) throws MaxChangedBlocksException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        try {
+            return MinecraftServerInterface.generateRedwoodTree(editSession, pt);
+        } catch (Throwable t) {
+            logger.log(Level.SEVERE, 
+                    "Failed to create big tree (do you need to update WorldEdit " +
+                    "due to a Minecraft update?)", t);
+            return false;
+        }
     }
 
     @Override
     public boolean generateTallRedwoodTree(EditSession editSession, Vector pt) throws MaxChangedBlocksException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        try {
+            return MinecraftServerInterface.generateTallRedwoodTree(editSession, pt);
+        } catch (Throwable t) {
+            logger.log(Level.SEVERE, 
+                    "Failed to create big tree (do you need to update WorldEdit " +
+                    "due to a Minecraft update?)", t);
+            return false;
+        }
     }
 
     @Override
     public void dropItem(Vector pt, BaseItemStack item) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        world.dropItem(pt.getX(), pt.getY(), pt.getZ(), item.getType(), item.getAmount(), item.getDamage());
     }
 
     @Override
     public int killMobs(Vector origin, int radius, boolean killPets) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        int killed = 0;
+        
+        for (Mob mob : world.getMobList()) {
+            Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
+            if (mob.getHealth() > 0
+                    && (radius == -1 || mobPos.distance(origin) <= radius)) {
+                mob.setHealth(0);
+                killed++;
+            }
+        }
+        
+        for (Mob mob : world.getAnimalList()) {
+            if (!killPets && (mob.getMob() instanceof OEntityWolf)
+                    && ((OEntityWolf)mob.getMob()).z())
+                continue;
+            Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
+            if (mob.getHealth() > 0
+                    && (radius == -1 || mobPos.distance(origin) <= radius)) {
+                mob.setHealth(0);
+                killed++;
+            }
+        }
+        
+        return killed;
     }
 
     @Override
     public int removeEntities(EntityType type, Vector origin, int radius) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        int num = 0;
+        
+        for (BaseEntity ent : world.getEntityList()) {
+            Vector entPos = new Vector(ent.getX(), ent.getY(), ent.getZ());
+            OEntity oent = ent.getEntity();
+            if (radius != -1 && entPos.distance(origin) > radius)
+                continue;
+            
+            switch (type) {
+                case ARROWS:
+                    if (oent instanceof OEntityArrow) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+                case BOATS:
+                    if (oent instanceof OEntityBoat) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+                case ITEMS:
+                    if (oent instanceof OEntityItem) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+                case MINECARTS:
+                    if (oent instanceof OEntityMinecart) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+                case PAINTINGS:
+                    if (oent instanceof OEntityPainting) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+                case TNT:
+                    if (oent instanceof OEntityTNTPrimed) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+                case XP_ORBS:
+                    if (oent instanceof OEntityXPOrb) {
+                        ent.destroy();
+                        num++;
+                    }
+                    break;
+            }
+            
+        }
+        return num;
     }
 
     private boolean setContainerBlockContents(Vector pt, BaseItemStack[] items) {
@@ -548,6 +673,31 @@ public class HMWorld extends LocalWorld {
         }
 
         return true;
+    }
+    
+
+    private BaseItemStack[] getContainerBlockContents(Vector pt) {
+        
+        ComplexBlock block = world.getOnlyComplexBlock(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
+        if (block == null || !(block instanceof BaseContainerBlock)) {
+            return new BaseItemStack[0];
+        }
+        
+        BaseContainerBlock container = (BaseContainerBlock) block;
+        int size = container.getContentsSize();
+        BaseItemStack[] contents = new BaseItemStack[size];
+        
+        for (int i = 0; i < size; ++i) {
+            Item canaryItem = container.getItemFromSlot(i);
+            if (canaryItem.getItemId() > 0) {
+                contents[i] = new BaseItemStack(
+                        canaryItem.getItemId(),
+                        canaryItem.getAmount(), 
+                (short) canaryItem.getDamage());
+            }
+        }
+        
+        return contents;
     }
 
     private boolean regenerateChunk(int x, int z) {

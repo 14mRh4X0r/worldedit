@@ -60,7 +60,7 @@ public class WorldEdit extends Plugin {
     public void initialize() {
         PluginLoader loader = etc.getLoader();
 
-        loader.addListener(PluginLoader.Hook.BLOCK_CREATED, listener, this,
+        loader.addListener(PluginLoader.Hook.BLOCK_RIGHTCLICKED, listener, this,
                 PluginListener.Priority.MEDIUM);
         loader.addListener(PluginLoader.Hook.BLOCK_DESTROYED, listener, this,
                 PluginListener.Priority.MEDIUM);
@@ -71,6 +71,8 @@ public class WorldEdit extends Plugin {
         loader.addListener(PluginLoader.Hook.LOGIN, listener, this,
                 PluginListener.Priority.MEDIUM);
         loader.addListener(PluginLoader.Hook.ARM_SWING, listener, this,
+                PluginListener.Priority.MEDIUM);
+        loader.addListener(PluginLoader.Hook.ITEM_USE, listener, this,
                 PluginListener.Priority.MEDIUM);
 
         logger.log(Level.INFO, "WorldEdit version " + getVersion() + " loaded");
