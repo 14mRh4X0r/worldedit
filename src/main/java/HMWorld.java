@@ -506,7 +506,13 @@ public class HMWorld extends LocalWorld {
             MobSpawner canary = (MobSpawner) canaryBlock;
             MobSpawnerBlock we = (MobSpawnerBlock) block;
             we.setMobType(canary.getSpawn());
-            we.setDelay((short) canary.spawner.a);
+            try {
+                we.setDelay((short) ((OTileEntityMobSpawner) getPrivateField("spawner", canary)).a);
+            } catch (NoSuchFieldException ex) {
+                Logger.getLogger(HMWorld.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IllegalAccessException ex) {
+                Logger.getLogger(HMWorld.class.getName()).log(Level.SEVERE, null, ex);
+            }
             return true;
         
         // Note block
@@ -689,7 +695,7 @@ public class HMWorld extends LocalWorld {
         
         for (int i = 0; i < size; ++i) {
             Item canaryItem = container.getItemFromSlot(i);
-            if (canaryItem.getItemId() > 0) {
+            if (canaryItem != null) {
                 contents[i] = new BaseItemStack(
                         canaryItem.getItemId(),
                         canaryItem.getAmount(), 
