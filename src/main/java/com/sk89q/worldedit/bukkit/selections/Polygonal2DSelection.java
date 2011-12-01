@@ -28,38 +28,27 @@ import com.sk89q.worldedit.regions.*;
 public class Polygonal2DSelection extends RegionSelection {
 
     protected Polygonal2DRegion poly2d;
-    
+
     public Polygonal2DSelection(World world, RegionSelector sel, Polygonal2DRegion region) {
         super(world, sel, region);
         this.poly2d = region;
     }
-    
-    public Polygonal2DSelection(World world, List<BlockVector2D> points, int minY, int maxY) {        
+
+    public Polygonal2DSelection(World world, List<BlockVector2D> points, int minY, int maxY) {
         super(world);
 
         minY = Math.min(Math.max(0, minY), 127);
         maxY = Math.min(Math.max(0, maxY), 127);
 
         Polygonal2DRegionSelector sel = new Polygonal2DRegionSelector();
-        poly2d = sel.getIncompleteRegion();
-        
-        for (BlockVector2D pt : points) {
-            if (pt == null) {
-                throw new IllegalArgumentException("Null point not permitted");
-            }
-            
-            poly2d.addPoint(pt);
-        }
-        
-        poly2d.setMinimumY(minY);
-        poly2d.setMaximumY(maxY);
-        
+        poly2d = new Polygonal2DRegion(points, minY, maxY);
+
         sel.learnChanges();
 
         setRegionSelector(sel);
         setRegion(poly2d);
     }
-    
+
     public List<BlockVector2D> getNativePoints() {
         return Collections.unmodifiableList(poly2d.getPoints());
     }

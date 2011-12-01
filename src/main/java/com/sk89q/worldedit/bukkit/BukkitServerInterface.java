@@ -26,7 +26,7 @@ import com.sk89q.worldedit.ServerInterface;
 public class BukkitServerInterface extends ServerInterface {
     public Server server;
     public WorldEditPlugin plugin;
-    
+
     public BukkitServerInterface(WorldEditPlugin plugin, Server server) {
         this.plugin = plugin;
         this.server = server;
@@ -48,4 +48,8 @@ public class BukkitServerInterface extends ServerInterface {
         plugin.loadConfiguration();
     }
 
+    @Override
+    public int schedule(long delay, long period, Runnable task) {
+        return Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, task, delay, period);
+    }
 }

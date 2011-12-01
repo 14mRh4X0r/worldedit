@@ -22,14 +22,15 @@ package com.sk89q.worldedit.expression;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import com.sk89q.worldedit.expression.lexer.Lexer;
 import com.sk89q.worldedit.expression.lexer.tokens.Token;
 import com.sk89q.worldedit.expression.parser.Parser;
-import com.sk89q.worldedit.expression.parser.ParserException;
 import com.sk89q.worldedit.expression.runtime.Constant;
 import com.sk89q.worldedit.expression.runtime.EvaluationException;
 import com.sk89q.worldedit.expression.runtime.RValue;
+import com.sk89q.worldedit.expression.runtime.ReturnException;
 import com.sk89q.worldedit.expression.runtime.Variable;
 
 /**
@@ -57,9 +58,12 @@ import com.sk89q.worldedit.expression.runtime.Variable;
  * @author TomyLobo
  */
 public class Expression {
+    private static final ThreadLocal<Stack<Expression>> instance = new ThreadLocal<Stack<Expression>>();
+
     private final Map<String, RValue> variables = new HashMap<String, RValue>();
     private final String[] variableNames;
     private RValue root;
+    private final Map<Integer, double[]> megabuf = new HashMap<Integer, double[]>();
 
     public static Expression compile(String expression, String... variableNames) throws ExpressionException {
         return new Expression(expression, variableNames);
@@ -69,17 +73,22 @@ public class Expression {
         this(Lexer.tokenize(expression), variableNames);
     }
 
-    private Expression(List<Token> tokens, String... variableNames) throws ParserException {
+    private Expression(List<Token> tokens, String... variableNames) throws ExpressionException {
         this.variableNames = variableNames;
+
         variables.put("e", new Constant(-1, Math.E));
         variables.put("pi", new Constant(-1, Math.PI));
         variables.put("true", new Constant(-1, 1));
         variables.put("false", new Constant(-1, 0));
+
         for (String variableName : variableNames) {
+            if (variables.containsKey(variableName)) {
+                throw new ExpressionException(-1, "Tried to overwrite identifier '" + variableName + "'");
+            }
             variables.put(variableName, new Variable(0));
         }
 
-        root = Parser.parse(tokens, variables);
+        root = Parser.parse(tokens, this);
     }
 
     public double evaluate(double... values) throws EvaluationException {
@@ -93,7 +102,14 @@ public class Expression {
             ((Variable) invokable).value = values[i];
         }
 
-        return root.getValue();
+        pushInstance();
+        try {
+            return root.getValue();
+        } catch (ReturnException e) {
+            return e.getValue();
+        } finally {
+            popInstance();
+        }
     }
 
     public void optimize() throws EvaluationException {
@@ -105,7 +121,39 @@ public class Expression {
         return root.toString();
     }
 
-    public RValue getVariable(String name) {
-        return variables.get(name);
+    public RValue getVariable(String name, boolean create) {
+        RValue variable = variables.get(name);
+        if (variable == null && create) {
+            variables.put(name, variable = new Variable(0));
+        }
+
+        return variable;
+    }
+
+    public static Expression getInstance() {
+        return instance.get().peek();
+    }
+
+    private void pushInstance() {
+        Stack<Expression> foo = instance.get();
+        if (foo == null) {
+            instance.set(foo = new Stack<Expression>());
+        }
+
+        foo.push(this);
+    }
+
+    private void popInstance() {
+        Stack<Expression> foo = instance.get();
+
+        foo.pop();
+
+        if (foo.isEmpty()) {
+            instance.set(null);
+        }
+    }
+
+    public Map<Integer, double[]> getMegabuf() {
+        return megabuf;
     }
 }

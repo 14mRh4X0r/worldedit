@@ -75,7 +75,6 @@ public class LocalSession {
     private boolean fastMode = false;
     private Mask mask;
     private TimeZone timezone = TimeZone.getDefault();
-    private Boolean jumptoBlock = true;
 
     /**
      * Construct the object.
@@ -165,7 +164,7 @@ public class LocalSession {
         if (historyPointer < history.size()) {
             EditSession editSession = history.get(historyPointer);
             EditSession newEditSession =
-                new EditSession(editSession.getWorld(), -1, newBlockBag);
+                    new EditSession(editSession.getWorld(), -1, newBlockBag);
             newEditSession.enableQueue();
             newEditSession.setFastMode(fastMode);
             editSession.redo(newEditSession);
@@ -465,7 +464,7 @@ public class LocalSession {
             setTool(item, tool);
         }
 
-        return (BrushTool)tool;
+        return (BrushTool) tool;
     }
 
     /**
@@ -683,21 +682,5 @@ public class LocalSession {
      */
     public void setMask(Mask mask) {
         this.mask = mask;
-    }
-
-    /**
-     * This is used as a workaround for a bug.
-     * It blocks the compass from using the jumpto function after the thru function
-     */
-    public void toggleJumptoBlock() {
-        this.jumptoBlock = !jumptoBlock;
-    }
-
-    /**
-     * This is used as a workaround for a bug.
-     * @return true if the compass's jumpto function can be used again
-     */
-    public Boolean canUseJumpto() {
-        return jumptoBlock;
     }
 }

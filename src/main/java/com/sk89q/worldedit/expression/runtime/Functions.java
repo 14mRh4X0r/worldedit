@@ -24,6 +24,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+
+import com.sk89q.worldedit.expression.Expression;
+import com.sk89q.worldedit.expression.runtime.Function.Dynamic;
 
 /**
  * Contains all functions that can be used in expressions.
@@ -32,15 +36,26 @@ import java.util.Map;
  */
 public final class Functions {
     private static class Overload {
-        private final Method method; 
+        private final Method method;
         private final int mask;
+        private final boolean isSetter;
 
         public Overload(Method method) throws IllegalArgumentException {
             this.method = method;
 
+            boolean isSetter = false;
             int accum = 0;
             Class<?>[] parameters = method.getParameterTypes();
             for (Class<?> parameter : parameters) {
+                if (isSetter) {
+                    throw new IllegalArgumentException("Method takes arguments that can't be cast to RValue.");
+                }
+
+                if (double.class.equals(parameter)) {
+                    isSetter = true;
+                    continue;
+                }
+
                 if (!RValue.class.isAssignableFrom(parameter)) {
                     throw new IllegalArgumentException("Method takes arguments that can't be cast to RValue.");
                 }
@@ -54,9 +69,14 @@ public final class Functions {
                 }
             }
             mask = accum;
+            this.isSetter = isSetter;
         }
 
-        public boolean matches(RValue... args) {
+        public boolean matches(boolean isSetter, RValue... args) {
+            if (this.isSetter != isSetter) {
+                return false;
+            }
+
             int accum = 0;
             for (RValue argument : args) {
                 accum <<= 2;
@@ -72,16 +92,21 @@ public final class Functions {
         }
     }
 
-
     public static final Function getFunction(int position, String name, RValue... args) throws NoSuchMethodException {
-        return new Function(position, getMethod(name, args), args);
+        final Method getter = getMethod(name, false, args);
+        try {
+            Method setter = getMethod(name, true, args);
+            return new LValueFunction(position, getter, setter, args);
+        } catch (NoSuchMethodException e) {
+            return new Function(position, getter, args);
+        }
     }
 
-    private static Method getMethod(String name, RValue... args) throws NoSuchMethodException {
+    private static Method getMethod(String name, boolean isSetter, RValue... args) throws NoSuchMethodException {
         final List<Overload> overloads = functions.get(name);
         if (overloads != null) {
             for (Overload overload : overloads) {
-                if (overload.matches(args)) {
+                if (overload.matches(isSetter, args)) {
                     return overload.method;
                 }
             }
@@ -93,125 +118,130 @@ public final class Functions {
     private static final Map<String, List<Overload>> functions = new HashMap<String, List<Overload>>();
     static {
         for (Method method : Functions.class.getMethods()) {
-            final String methodName = method.getName();
-
             try {
-                Overload overload = new Overload(method);
-
-                List<Overload> overloads = functions.get(methodName);
-                if (overloads == null) {
-                    functions.put(methodName, overloads = new ArrayList<Overload>());
-                }
-
-                overloads.add(overload);
+                addFunction(method);
             } catch(IllegalArgumentException e) {}
         }
     }
 
 
-    public static final double sin(RValue x) throws Exception {
+    public static void addFunction(Method method) throws IllegalArgumentException {
+        final String methodName = method.getName();
+
+        Overload overload = new Overload(method);
+
+        List<Overload> overloads = functions.get(methodName);
+        if (overloads == null) {
+            functions.put(methodName, overloads = new ArrayList<Overload>());
+        }
+
+        overloads.add(overload);
+    }
+
+
+    public static final double sin(RValue x) throws EvaluationException {
         return Math.sin(x.getValue());
     }
 
-    public static final double cos(RValue x) throws Exception {
+    public static final double cos(RValue x) throws EvaluationException {
         return Math.cos(x.getValue());
     }
 
-    public static final double tan(RValue x) throws Exception {
+    public static final double tan(RValue x) throws EvaluationException {
         return Math.tan(x.getValue());
     }
 
 
-    public static final double asin(RValue x) throws Exception {
+    public static final double asin(RValue x) throws EvaluationException {
         return Math.asin(x.getValue());
     }
 
-    public static final double acos(RValue x) throws Exception {
+    public static final double acos(RValue x) throws EvaluationException {
         return Math.acos(x.getValue());
     }
 
-    public static final double atan(RValue x) throws Exception {
+    public static final double atan(RValue x) throws EvaluationException {
         return Math.atan(x.getValue());
     }
 
-    public static final double atan2(RValue y, RValue x) throws Exception {
+    public static final double atan2(RValue y, RValue x) throws EvaluationException {
         return Math.atan2(y.getValue(), x.getValue());
     }
 
 
-    public static final double sinh(RValue x) throws Exception {
+    public static final double sinh(RValue x) throws EvaluationException {
         return Math.sinh(x.getValue());
     }
 
-    public static final double cosh(RValue x) throws Exception {
+    public static final double cosh(RValue x) throws EvaluationException {
         return Math.cosh(x.getValue());
     }
 
-    public static final double tanh(RValue x) throws Exception {
+    public static final double tanh(RValue x) throws EvaluationException {
         return Math.tanh(x.getValue());
     }
 
 
-    public static final double sqrt(RValue x) throws Exception {
+    public static final double sqrt(RValue x) throws EvaluationException {
         return Math.sqrt(x.getValue());
     }
 
-    public static final double cbrt(RValue x) throws Exception {
+    public static final double cbrt(RValue x) throws EvaluationException {
         return Math.cbrt(x.getValue());
     }
 
 
-    public static final double abs(RValue x) throws Exception {
+    public static final double abs(RValue x) throws EvaluationException {
         return Math.abs(x.getValue());
     }
 
-    public static final double min(RValue a, RValue b) throws Exception {
+    public static final double min(RValue a, RValue b) throws EvaluationException {
         return Math.min(a.getValue(), b.getValue());
     }
 
-    public static final double min(RValue a, RValue b, RValue c) throws Exception {
+    public static final double min(RValue a, RValue b, RValue c) throws EvaluationException {
         return Math.min(a.getValue(), Math.min(b.getValue(), c.getValue()));
     }
 
-    public static final double max(RValue a, RValue b) throws Exception {
+    public static final double max(RValue a, RValue b) throws EvaluationException {
         return Math.max(a.getValue(), b.getValue());
     }
 
-    public static final double max(RValue a, RValue b, RValue c) throws Exception {
+    public static final double max(RValue a, RValue b, RValue c) throws EvaluationException {
         return Math.max(a.getValue(), Math.max(b.getValue(), c.getValue()));
     }
 
 
-    public static final double ceil(RValue x) throws Exception {
+    public static final double ceil(RValue x) throws EvaluationException {
         return Math.ceil(x.getValue());
     }
 
-    public static final double floor(RValue x) throws Exception {
+    public static final double floor(RValue x) throws EvaluationException {
         return Math.floor(x.getValue());
     }
 
-    public static final double rint(RValue x) throws Exception {
+    public static final double rint(RValue x) throws EvaluationException {
         return Math.rint(x.getValue());
     }
 
-    public static final double round(RValue x) throws Exception {
+    public static final double round(RValue x) throws EvaluationException {
         return Math.round(x.getValue());
     }
 
 
-    public static final double exp(RValue x) throws Exception {
+    public static final double exp(RValue x) throws EvaluationException {
         return Math.exp(x.getValue());
     }
 
-    public static final double ln(RValue x) throws Exception {
+    public static final double ln(RValue x) throws EvaluationException {
         return Math.log(x.getValue());
     }
 
-    public static final double log(RValue x) throws Exception {
+    public static final double log(RValue x) throws EvaluationException {
         return Math.log(x.getValue());
     }
 
-    public static final double log10(RValue x) throws Exception {
+    public static final double log10(RValue x) throws EvaluationException {
         return Math.log10(x.getValue());
     }
 
@@ -228,6 +258,63 @@ public final class Functions {
         x.assign(xOld * cosF - yOld * sinF);
         y.assign(xOld * sinF + yOld * cosF);
 
-        return 0;
+        return 0.0;
+    }
+
+    public static final double swap(LValue x, LValue y) throws EvaluationException {
+        final double tmp = x.getValue();
+
+        x.assign(y.getValue());
+        y.assign(tmp);
+
+        return 0.0;
+    }
+
+
+    private static final Map<Integer, double[]> gmegabuf = new HashMap<Integer, double[]>();
+
+    private static double[] getSubBuffer(Map<Integer, double[]> megabuf, Integer key) {
+        double[] ret = megabuf.get(key);
+        if (ret == null) {
+            megabuf.put(key, ret = new double[1024]);
+        }
+        return ret;
+    }
+
+    @Dynamic
+    public static final double gmegabuf(RValue index) throws EvaluationException {
+        final int intIndex = (int) index.getValue();
+        return getSubBuffer(gmegabuf, intIndex & ~1023)[intIndex & 1023];
+    }
+
+    @Dynamic
+    public static final double gmegabuf(RValue index, double value) throws EvaluationException {
+        final int intIndex = (int) index.getValue();
+        return getSubBuffer(gmegabuf, intIndex & ~1023)[intIndex & 1023] = value;
+    }
+
+    @Dynamic
+    public static final double megabuf(RValue index) throws EvaluationException {
+        final int intIndex = (int) index.getValue();
+        return getSubBuffer(Expression.getInstance().getMegabuf(), intIndex & ~1023)[intIndex & 1023];
+    }
+
+    @Dynamic
+    public static final double megabuf(RValue index, double value) throws EvaluationException {
+        final int intIndex = (int) index.getValue();
+        return getSubBuffer(Expression.getInstance().getMegabuf(), intIndex & ~1023)[intIndex & 1023] = value;
+    }
+
+
+    private static final Random random = new Random();
+
+    @Dynamic
+    public static final double random() {
+        return random.nextDouble();
+    }
+
+    @Dynamic
+    public static final double randint(RValue max) throws EvaluationException {
+        return random.nextInt((int) Math.floor(max.getValue()));
     }
 }

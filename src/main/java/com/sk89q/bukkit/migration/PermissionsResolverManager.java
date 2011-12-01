@@ -64,11 +64,11 @@ public class PermissionsResolverManager implements PermissionsResolver {
 
     @SuppressWarnings("unchecked")
     protected Class<? extends PermissionsResolver>[] availableResolvers = new Class[] {
-        PluginPermissionsResolver.class,
-        PermissionsExResolver.class,
-        NijiPermissionsResolver.class,
-        DinnerPermsResolver.class,
-        FlatFilePermissionsResolver.class
+            PluginPermissionsResolver.class,
+            PermissionsExResolver.class,
+            NijiPermissionsResolver.class,
+            DinnerPermsResolver.class,
+            FlatFilePermissionsResolver.class
     };
 
     @Deprecated
@@ -167,8 +167,8 @@ public class PermissionsResolverManager implements PermissionsResolver {
         }
 
         if (!keys.contains("resolvers")) {
-           //List<String> resolverKeys = config.getKeys("resolvers");
-           List<String> resolvers = new ArrayList<String>();
+            //List<String> resolverKeys = config.getKeys("resolvers");
+            List<String> resolvers = new ArrayList<String>();
             for (Class<?> clazz : availableResolvers) {
                 resolvers.add(clazz.getSimpleName());
             }
@@ -199,7 +199,7 @@ public class PermissionsResolverManager implements PermissionsResolver {
             for (Class<?> clazz : availableResolvers) {
                 if (!stagedEnabled.contains(clazz.getSimpleName()) &&
                         !disabledResolvers.contains(clazz.getSimpleName())) {
-                    disabledResolvers.add(clazz.getName());
+                    disabledResolvers.add(clazz.getSimpleName());
                     logger.info("New permissions resolver: "
                             + clazz.getSimpleName() + " detected. " +
                             "Added to disabled resolvers list.");

@@ -19,6 +19,7 @@
 
 package com.sk89q.worldedit;
 
+import java.util.PriorityQueue;
 import java.util.Random;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.blocks.BaseItemStack;
@@ -35,7 +36,7 @@ public abstract class LocalWorld {
      * Random generator.
      */
     protected Random random = new Random();
-    
+
     /**
      * Get the name of the world.
      * 
@@ -129,7 +130,7 @@ public abstract class LocalWorld {
      * @return
      */
     public abstract int getBlockLightLevel(Vector pt);
-    
+
     /**
      * Regenerate an area.
      * 
@@ -248,10 +249,16 @@ public abstract class LocalWorld {
      */
     public void simulateBlockMine(Vector pt) {
         BaseItemStack stack = BlockType.getBlockDrop(getBlockType(pt), (short) getBlockData(pt));
-        if (stack != null) dropItem(pt,
-                stack.getAmount() > 1 ? new BaseItemStack(stack.getType(),
-                1, stack.getDamage()) : stack, stack.getAmount());
+        if (stack == null) {
+            return;
+        }
 
+        final int amount = stack.getAmount();
+        if (amount > 1) {
+            dropItem(pt, new BaseItemStack(stack.getType(), 1, stack.getDamage()), amount);
+        } else {
+            dropItem(pt, stack, amount);
+        }
     }
 
     /**
@@ -282,7 +289,7 @@ public abstract class LocalWorld {
      * @return
      */
     public abstract int removeEntities(EntityType type, Vector origin, int radius);
-    
+
     /**
      * Returns whether a block has a valid ID.
      * 
@@ -298,7 +305,8 @@ public abstract class LocalWorld {
      *
      * @param pt Position to check
      */
-    public void checkLoadedChunk(Vector pt) {}
+    public void checkLoadedChunk(Vector pt) {
+    }
 
     /**
      * Compare if the other world is equal.
@@ -331,7 +339,65 @@ public abstract class LocalWorld {
      * 
      * @param chunks the chunks to fix
      */
-    public void fixAfterFastMode(Iterable<BlockVector2D> chunks) {}
+    public void fixAfterFastMode(Iterable<BlockVector2D> chunks) {
+    }
 
-    public void fixLighting(Iterable<BlockVector2D> chunks) {}
+    public void fixLighting(Iterable<BlockVector2D> chunks) {
+    }
+
+    /**
+     * Plays the minecraft effect with the given type and data at the given position.
+     *
+     * @param position
+     * @param type
+     * @param data
+     */
+    public boolean playEffect(Vector position, int type, int data) {
+        return false;
+    }
+
+    private class QueuedEffect implements Comparable<QueuedEffect>{
+        private final Vector position;
+        private final int blockId;
+        private final double priority;
+        public QueuedEffect(Vector position, int blockId, double priority) {
+            this.position = position;
+            this.blockId = blockId;
+            this.priority = priority;
+        }
+
+        public void play() {
+            playEffect(position, 2001, blockId);
+        }
+
+        @Override
+        public int compareTo(QueuedEffect other) {
+            return Double.compare(priority, other.priority);
+        }
+    }
+
+    private final PriorityQueue<QueuedEffect> effectQueue = new PriorityQueue<QueuedEffect>();
+    private int taskId = -1;
+    public boolean queueBlockBreakEffect(ServerInterface server, Vector position, int blockId, double priority) {
+        if (taskId == -1) {
+            taskId = server.schedule(0, 1, new Runnable() { 
+                public void run() {
+                    int max = Math.max(1, Math.min(30, effectQueue.size() / 3));
+                    for (int i = 0; i < max; ++i) {
+                        if (effectQueue.isEmpty()) return;
+
+                        effectQueue.poll().play();
+                    }
+                }
+            });
+        }
+
+        if (taskId == -1) {
+            return false;
+        }
+
+        effectQueue.offer(new QueuedEffect(position, blockId, priority));
+
+        return true;
+    }
 }

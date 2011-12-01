@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author TomyLobo
  */
-public class Sequence extends RValue {
+public class Sequence extends Node {
     private final RValue[] sequence;
 
     public Sequence(int position, RValue... sequence) {
@@ -69,15 +69,27 @@ public class Sequence extends RValue {
     public RValue optimize() throws EvaluationException {
         List<RValue> newSequence = new ArrayList<RValue>();
 
+        RValue droppedLast = null;
         for (RValue invokable : sequence) {
+            droppedLast = null;
             invokable = invokable.optimize();
             if (invokable instanceof Sequence) {
                 for (RValue subInvokable : ((Sequence) invokable).sequence) {
                     newSequence.add(subInvokable);
                 }
+            } else if (invokable instanceof Constant) {
+                droppedLast = invokable;
             } else {
                 newSequence.add(invokable);
             }
+        }
+
+        if (droppedLast != null) {
+            newSequence.add(droppedLast);
+        }
+
+        if (newSequence.size() == 1) {
+            return newSequence.get(0);
         }
 
         return new Sequence(getPosition(), newSequence.toArray(new RValue[newSequence.size()]));

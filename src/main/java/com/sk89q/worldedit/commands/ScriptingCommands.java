@@ -48,7 +48,7 @@ public class ScriptingCommands {
 
         String[] scriptArgs = args.getSlice(1);
         String name = args.getString(0);
-        
+
         if (!player.hasPermission("worldedit.scripting.execute." + name)) {
             player.printError("You don't have permission to use that script.");
             return;
@@ -57,9 +57,8 @@ public class ScriptingCommands {
         session.setLastScript(name);
 
         File dir = we.getWorkingDirectoryFile(we.getConfiguration().scriptsDir);
-        File f = we.getSafeOpenFile(player, dir, name, "js",
-                new String[] {"js"});
-        
+        File f = we.getSafeOpenFile(player, dir, name, "js", "js");
+
         we.runScript(player, f, scriptArgs);
     }
 
@@ -77,12 +76,12 @@ public class ScriptingCommands {
             throws WorldEditException {
         
         String lastScript = session.getLastScript();
-        
+
         if (!player.hasPermission("worldedit.scripting.execute." + lastScript)) {
             player.printError("You don't have permission to use that script.");
             return;
         }
-        
+
         if (lastScript == null) {
             player.printError("Use /cs with a script name first.");
             return;
@@ -91,9 +90,8 @@ public class ScriptingCommands {
         String[] scriptArgs = args.getSlice(0);
 
         File dir = we.getWorkingDirectoryFile(we.getConfiguration().scriptsDir);
-        File f = we.getSafeOpenFile(player, dir, lastScript, "js",
-                new String[] {"js"});
-        
+        File f = we.getSafeOpenFile(player, dir, lastScript, "js", "js");
+
         we.runScript(player, f, scriptArgs);
     }
 }
