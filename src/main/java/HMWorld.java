@@ -709,7 +709,7 @@ public class HMWorld extends LocalWorld {
     private boolean regenerateChunk(int x, int z) {
         unloadChunk(x, z);
 
-        OChunkProviderServer cps = world.getWorld().M;
+        OChunkProviderServer cps = world.getWorld().J;
 
         OChunk chunk = null;
 
@@ -734,13 +734,13 @@ public class HMWorld extends LocalWorld {
 
     private boolean unloadChunk(int x, int z) {
 
-        OChunkProviderServer cps = world.getWorld().M;
+        OChunkProviderServer cps = world.getWorld().J;
 
         OChunk chunk = cps.b(x, z);
 
         try {
             ((Set) getPrivateField("b", cps)).remove(Long.valueOf(OChunkCoordIntPair.a(x, z)));
-            ((OPlayerHash) getPrivateField("f", cps)).d(OChunkCoordIntPair.a(x, z));
+            ((OLongHashMap) getPrivateField("f", cps)).d(OChunkCoordIntPair.a(x, z));
             ((ArrayList) getPrivateField("g", cps)).remove(chunk);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Could not access private fields", e);
@@ -757,9 +757,9 @@ public class HMWorld extends LocalWorld {
 
     private void chunkLoadPostProcess(OChunk chunk, int x, int z) {
         if (chunk != null) {
-            OChunkProviderServer cps = world.getWorld().M;
+            OChunkProviderServer cps = world.getWorld().J;
             try {
-                ((OPlayerHash) getPrivateField("f", cps)).a(OChunkCoordIntPair.a(x, z), chunk);
+                ((OLongHashMap) getPrivateField("f", cps)).a(OChunkCoordIntPair.a(x, z), chunk);
                 ((ArrayList) getPrivateField("g", cps)).add(chunk);
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Could not access private fields", e);
@@ -812,4 +812,12 @@ public class HMWorld extends LocalWorld {
         if (!world.isChunkLoaded(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ()))
             world.loadChunk(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
     }
+
+    @Override
+    public boolean playEffect(Vector pt, int type, int data) {
+        world.getWorld().f(type, pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(), data);
+        return true;
+    }
+    
+    
 }

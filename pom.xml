@@ -48,14 +48,14 @@
     <dependency>
         <groupId>net.canarymod</groupId>
         <artifactId>CanaryMod</artifactId>
-        <version>b3.2.9</version>
+        <version>b4.3.10</version>
     </dependency>
 
     <!-- MinecraftServerO -->
     <dependency>
         <groupId>net.canarymod</groupId>
         <artifactId>MinecraftServerO</artifactId>
-        <version>1.8.1</version>
+        <version>1.0.1</version>
     </dependency>
 
     <!-- Archive reading library for snapshots -->

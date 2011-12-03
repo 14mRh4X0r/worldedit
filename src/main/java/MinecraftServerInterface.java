@@ -73,7 +73,7 @@ public class MinecraftServerInterface {
      * @return
      */
     public static boolean generateTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenTrees());
+        return performWorldGen(editSession, pt, new OWorldGenTrees(false));
     }
 
     /**
@@ -83,7 +83,7 @@ public class MinecraftServerInterface {
      * @return
      */
     public static boolean generateBigTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenBigTree());
+        return performWorldGen(editSession, pt, new OWorldGenBigTree(false));
     }
 
     
@@ -111,11 +111,11 @@ public class MinecraftServerInterface {
     }
 
     static boolean generateBirchTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenForest());
+        return performWorldGen(editSession, pt, new OWorldGenForest(false));
     }
 
     static boolean generateRedwoodTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenTaiga2());
+        return performWorldGen(editSession, pt, new OWorldGenTaiga2(false));
     }
 
     static boolean generateTallRedwoodTree(EditSession editSession, Vector pt) {
