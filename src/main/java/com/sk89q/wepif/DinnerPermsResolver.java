@@ -95,7 +95,8 @@ public class DinnerPermsResolver implements PermissionsResolver {
         if (perms == null) {
             return false;
         }
-        return perms.hasPermission(GROUP_PREFIX + group);
+        String perm = GROUP_PREFIX + group;
+        return perms.isPermissionSet(perm) && perms.hasPermission(GROUP_PREFIX + group);
     }
 
     public String[] getGroups(OfflinePlayer player) {
