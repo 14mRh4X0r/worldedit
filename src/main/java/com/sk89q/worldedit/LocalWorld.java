@@ -33,6 +33,15 @@ import com.sk89q.worldedit.regions.Region;
  */
 public abstract class LocalWorld {
     /**
+     * Named flags to use as parameters to {@link LocalWorld#killMobs(Vector, int, int)}
+     */
+    public class KillFlags {
+        public static final int PETS = 1 << 0;
+        public static final int NPCS = 1 << 1;
+        public static final int ANIMALS = 1 << 2;
+    }
+
+    /**
      * Random generator.
      */
     protected Random random = new Random();
@@ -268,17 +277,35 @@ public abstract class LocalWorld {
      * @param radius
      * @return
      */
-    public abstract int killMobs(Vector origin, int radius);
+    @Deprecated
+    public int killMobs(Vector origin, int radius) {
+        return killMobs(origin, radius, false);
+    }
+
+    /**
+     * Kill mobs in an area.
+     * 
+     * @param origin
+     * @param radius -1 for all mobs
+     * @param flags various flags that determine what to kill
+     * @return
+     */
+    @Deprecated
+    public int killMobs(Vector origin, int radius, boolean killPets) {
+        return killMobs(origin, radius, killPets ? KillFlags.PETS : 0);
+    }
 
     /**
      * Kill mobs in an area.
      * 
      * @param origin
      * @param radius
-     * @param killPets
+     * @param killflags
      * @return
      */
-    public abstract int killMobs(Vector origin, int radius, boolean killPets);
+    public int killMobs(Vector origin, double radius, int flags) {
+        return killMobs(origin, (int) radius, (flags & KillFlags.PETS) != 0);
+    }
 
     /**
      * Remove entities in an area.
@@ -356,7 +383,7 @@ public abstract class LocalWorld {
         return false;
     }
 
-    private class QueuedEffect implements Comparable<QueuedEffect>{
+    private class QueuedEffect implements Comparable<QueuedEffect> {
         private final Vector position;
         private final int blockId;
         private final double priority;

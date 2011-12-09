@@ -26,6 +26,7 @@ import com.sk89q.minecraft.util.commands.CommandPermissions;
 import com.sk89q.minecraft.util.commands.Logging;
 import static com.sk89q.minecraft.util.commands.Logging.LogMode.*;
 import com.sk89q.worldedit.*;
+import com.sk89q.worldedit.LocalWorld.KillFlags;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.patterns.*;
 import com.sk89q.worldedit.regions.CuboidRegion;
@@ -344,8 +345,14 @@ public class UtilityCommands {
     @Command(
         aliases = { "butcher" },
         usage = "[radius]",
-        flags = "p",
+        flags = "pna",
         desc = "Kill all or nearby mobs",
+        help =
+            "Kills nearby mobs, or all mobs if you don't specify a radius.\n" +
+            "Flags:" +
+            "  -p also kills pets.\n" +
+            "  -n also kills NPCs.\n" +
+            "  -a also kills animals.",
         min = 0,
         max = 1
     )
@@ -358,7 +365,13 @@ public class UtilityCommands {
         int radius = args.argsLength() > 0 ? Math.max(1, args.getInteger(0)) : -1;
 
         Vector origin = session.getPlacementPosition(player);
-        int killed = player.getWorld().killMobs(origin, radius, args.hasFlag('p'));
+
+        int flags = 0;
+        if (args.hasFlag('p')) flags |= KillFlags.PETS;
+        if (args.hasFlag('n')) flags |= KillFlags.NPCS;
+        if (args.hasFlag('a')) flags |= KillFlags.ANIMALS;
+
+        int killed = player.getWorld().killMobs(origin, radius, flags);
         player.print("Killed " + killed + " mobs.");
     }
 

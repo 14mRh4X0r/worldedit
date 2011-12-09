@@ -33,6 +33,7 @@ import org.bukkit.block.Furnace;
 import org.bukkit.block.CreatureSpawner;
 import org.bukkit.block.Sign;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Animals;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
@@ -489,40 +490,47 @@ public class BukkitWorld extends LocalWorld {
     }
 
     /**
-     * Kill mobs in an area, excluding tamed wolves.
-     * 
-     * @param origin
-     * @param radius -1 for all mobs
-     * @return
-     */
-    @Override
-    public int killMobs(Vector origin, int radius) {
-        return killMobs(origin, radius, false);
-    }
-
-    /**
      * Kill mobs in an area.
      * 
-     * @param origin
-     * @param radius -1 for all mobs
-     * @param killPets true to kill tames wolves
+     * @param origin The center of the area to kill mobs in.
+     * @param radius Maximum distance to kill mobs at; radius < 0 means kill all mobs
+     * @param flags various flags that determine what to kill
      * @return
      */
     @Override
-    public int killMobs(Vector origin, int radius, boolean killPets) {
+    public int killMobs(Vector origin, double radius, int flags) {
+        boolean killPets = (flags & KillFlags.PETS) != 0;
+        boolean killNPCs = (flags & KillFlags.NPCS) != 0;
+        boolean killAnimals = (flags & KillFlags.ANIMALS) != 0;
+
         int num = 0;
-        double radiusSq = Math.pow(radius, 2);
+        double radiusSq = radius * radius;
+
+        Location bukkitOrigin = BukkitUtil.toLocation(world, origin);
 
         for (LivingEntity ent : world.getLivingEntities()) {
+            if (ent instanceof HumanEntity) {
+                continue;
+            }
+
+            if (!killAnimals && ent instanceof Animals) {
+                continue;
+            }
+
             if (!killPets && ent instanceof Tameable && ((Tameable) ent).isTamed()) {
                 continue; // tamed wolf
             }
-            if (ent instanceof LivingEntity && !(ent instanceof HumanEntity)) {
-                if (radius == -1
-                        || origin.distanceSq(BukkitUtil.toVector(ent.getLocation())) <= radiusSq) {
-                    ent.remove();
-                    ++num;
+
+            try {
+                // Temporary solution until org.bukkit.entity.NPC is widely deployed.
+                if (!killNPCs && Class.forName("org.bukkit.entity.NPC").isAssignableFrom(ent.getClass())) {
+                    continue;
                 }
+            } catch (ClassNotFoundException e) {}
+
+            if (radius < 0 || bukkitOrigin.distanceSquared(ent.getLocation()) <= radiusSq) {
+                ent.remove();
+                ++num;
             }
         }
 
