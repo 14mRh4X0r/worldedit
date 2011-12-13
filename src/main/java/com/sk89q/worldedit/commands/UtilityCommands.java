@@ -20,9 +20,13 @@
 package com.sk89q.worldedit.commands;
 
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
 import com.sk89q.minecraft.util.commands.Command;
 import com.sk89q.minecraft.util.commands.CommandContext;
 import com.sk89q.minecraft.util.commands.CommandPermissions;
+import com.sk89q.minecraft.util.commands.CommandsManager;
 import com.sk89q.minecraft.util.commands.Logging;
 import static com.sk89q.minecraft.util.commands.Logging.LogMode.*;
 import com.sk89q.worldedit.*;
@@ -173,7 +177,8 @@ public class UtilityCommands {
         
         int size = args.argsLength() > 0 ? Math.max(1, args.getInteger(0)) : 1;
         we.checkMaxRadius(size);
-        int height = args.argsLength() > 1 ? Math.min(128, args.getInteger(1) + 2) : 128;
+        LocalWorld world = player.getWorld();
+        int height = args.argsLength() > 1 ? Math.min((world.getMaxY() + 1), args.getInteger(1) + 2) : (world.getMaxY() + 1);
 
         int affected = editSession.removeAbove(
                 session.getPlacementPosition(player), size, height);
@@ -195,7 +200,8 @@ public class UtilityCommands {
 
         int size = args.argsLength() > 0 ? Math.max(1, args.getInteger(0)) : 1;
         we.checkMaxRadius(size);
-        int height = args.argsLength() > 1 ? Math.min(128, args.getInteger(1) + 2) : 128;
+        LocalWorld world = player.getWorld();
+        int height = args.argsLength() > 1 ? Math.min((world.getMaxY() + 1), args.getInteger(1) + 2) : (world.getMaxY() + 1);
 
         int affected = editSession.removeBelow(session.getPlacementPosition(player), size, height);
         player.print(affected + " block(s) have been removed.");
@@ -251,7 +257,7 @@ public class UtilityCommands {
         Vector base = session.getPlacementPosition(player);
         Vector min = base.subtract(size, size, size);
         Vector max = base.add(size, size, size);
-        Region region = new CuboidRegion(min, max);
+        Region region = new CuboidRegion(player.getWorld(), min, max);
 
         if (to instanceof SingleBlockPattern) {
             affected = editSession.replaceBlocks(region, from, ((SingleBlockPattern) to).getBlock());
@@ -423,5 +429,49 @@ public class UtilityCommands {
         Vector origin = session.getPlacementPosition(player);
         int removed = player.getWorld().removeEntities(type, origin, radius);
         player.print("Marked " + removed + " entit(ies) for removal.");
+    }
+
+    @Command(
+        aliases = { "/help" },
+        usage = "[<command>]",
+        desc = "Displays help for the given command or lists all commands.",
+        min = 0,
+        max = -1
+    )
+    public static void help(CommandContext args, WorldEdit we,
+            LocalSession session, LocalPlayer player, EditSession editSession)
+            throws WorldEditException {
+
+        final CommandsManager<LocalPlayer> commandsManager = we.getCommandsManager();
+
+        if (args.argsLength() == 0) {
+            StringBuilder sb = new StringBuilder();
+            boolean first = true;
+            SortedSet<String> commands = new TreeSet<String>(commandsManager.getCommands().keySet());
+
+            for (String command : commands) {
+                if (!first) {
+                    sb.append(", ");
+                }
+
+                sb.append('/');
+                sb.append(command);
+                first = false;
+            }
+
+            player.print(sb.toString());
+
+            return;
+        }
+
+        String command = args.getJoinedStrings(0).replaceAll("/", "");
+
+        String helpMessage = commandsManager.getHelpMessages().get(command);
+        if (helpMessage == null) {
+            player.printError("Unknown command '" + command + "'.");
+            return;
+        }
+
+        player.print(helpMessage);
     }
 }
