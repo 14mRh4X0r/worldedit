@@ -19,6 +19,7 @@
 
 package com.sk89q.worldedit.commands;
 
+import java.util.Comparator;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -27,6 +28,7 @@ import com.sk89q.minecraft.util.commands.Command;
 import com.sk89q.minecraft.util.commands.CommandContext;
 import com.sk89q.minecraft.util.commands.CommandPermissions;
 import com.sk89q.minecraft.util.commands.CommandsManager;
+import com.sk89q.minecraft.util.commands.Console;
 import com.sk89q.minecraft.util.commands.Logging;
 import static com.sk89q.minecraft.util.commands.Logging.LogMode.*;
 import com.sk89q.worldedit.*;
@@ -364,10 +366,27 @@ public class UtilityCommands {
     )
     @CommandPermissions("worldedit.butcher")
     @Logging(PLACEMENT)
+    @Console
     public static void butcher(CommandContext args, WorldEdit we,
             LocalSession session, LocalPlayer player, EditSession editSession)
             throws WorldEditException {
 
+        int killed;
+
+        final LocalWorld world = player.getWorld();
+        if (world == null) {
+            killed = 0;
+            for (LocalWorld world2 : we.getServer().getWorlds()) {
+                killed += butcherHelper(args, session, player, world2);
+            }
+        } else {
+            killed = butcherHelper(args, session, player, world);
+        }
+
+        player.print("Killed " + killed + " mobs.");
+    }
+
+    private static int butcherHelper(CommandContext args, LocalSession session, LocalPlayer player, final LocalWorld world) throws IncompleteRegionException {
         int radius = args.argsLength() > 0 ? Math.max(1, args.getInteger(0)) : -1;
 
         Vector origin = session.getPlacementPosition(player);
@@ -377,8 +396,8 @@ public class UtilityCommands {
         if (args.hasFlag('n')) flags |= KillFlags.NPCS;
         if (args.hasFlag('a')) flags |= KillFlags.ANIMALS;
 
-        int killed = player.getWorld().killMobs(origin, radius, flags);
-        player.print("Killed " + killed + " mobs.");
+        int killed = world.killMobs(origin, radius, flags);
+        return killed;
     }
 
     @Command(
@@ -445,10 +464,19 @@ public class UtilityCommands {
         final CommandsManager<LocalPlayer> commandsManager = we.getCommandsManager();
 
         if (args.argsLength() == 0) {
+            SortedSet<String> commands = new TreeSet<String>(new Comparator<String>() {
+                public int compare(String o1, String o2) {
+                    final int ret = o1.replaceAll("/", "").compareToIgnoreCase(o2.replaceAll("/", ""));
+                    if (ret == 0) {
+                        return o1.compareToIgnoreCase(o2);
+                    }
+                    return ret;
+                }
+            });
+            commands.addAll(commandsManager.getCommands().keySet());
+
             StringBuilder sb = new StringBuilder();
             boolean first = true;
-            SortedSet<String> commands = new TreeSet<String>(commandsManager.getCommands().keySet());
-
             for (String command : commands) {
                 if (!first) {
                     sb.append(", ");
