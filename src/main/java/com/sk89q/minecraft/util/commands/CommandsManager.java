@@ -260,6 +260,10 @@ public abstract class CommandsManager<T> {
         return descs;
     }
 
+    public Map<Method, Map<String, Method>> getMethods() {
+        return commands;
+    }
+
     /**
      * Get a map from command name to help message. This is only for root commands.
      * 

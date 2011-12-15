@@ -120,9 +120,13 @@ public class WorldEdit {
                         logMode = loggingAnnotation.value();
                     }
 
-                    String msg = "WorldEdit: " + player.getName() + " (in \"" + player.getWorld().getName()
-                            + "\")" + ": " + StringUtil.joinString(args, " ");
-                    if (logMode != null) {
+                    final LocalWorld world = player.getWorld();
+                    String msg = "WorldEdit: " + player.getName();
+                    if (world != null) {
+                        msg += " (in \"" + world.getName() + "\")";
+                    }
+                    msg += ": " + StringUtil.joinString(args, " ");
+                    if (logMode != null && world != null) {
                         Vector position = player.getPosition();
                         final LocalSession session = getSession(player);
                         switch (logMode) {
@@ -148,7 +152,7 @@ public class WorldEdit {
 
                         case REGION:
                             try {
-                                msg += " - Region: " + session.getSelection(player.getWorld());
+                                msg += " - Region: " + session.getSelection(world);
                             } catch (IncompleteRegionException e) {
                                 break;
                             }
