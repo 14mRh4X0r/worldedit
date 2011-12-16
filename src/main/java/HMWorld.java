@@ -675,7 +675,8 @@ public class HMWorld extends LocalWorld {
 
         for (int i = 0; i < container.getContentsSize(); i++) {
             BaseItemStack item = items[i];
-            container.setSlot(item.getType(), item.getAmount(), item.getDamage(), i);
+            if (item != null)
+                container.setSlot(item.getType(), item.getAmount(), item.getDamage(), i);
         }
 
         return true;
