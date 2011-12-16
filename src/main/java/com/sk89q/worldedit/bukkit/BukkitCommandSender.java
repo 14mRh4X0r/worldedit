@@ -4,6 +4,8 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+
 import com.sk89q.worldedit.LocalPlayer;
 import com.sk89q.worldedit.LocalWorld;
 import com.sk89q.worldedit.PlayerNeededException;
@@ -63,18 +65,23 @@ public class BukkitCommandSender extends LocalPlayer {
     }
 
     @Override
+    public boolean isPlayer() {
+        return sender instanceof Player;
+    }
+
+    @Override
     public int getItemInHand() {
         throw new PlayerNeededException();
     }
 
     @Override
     public WorldVector getPosition() {
-        return new WorldVector(getWorld());
+        throw new PlayerNeededException();
     }
 
     @Override
     public LocalWorld getWorld() {
-        return null;
+        throw new PlayerNeededException();
     }
 
     @Override

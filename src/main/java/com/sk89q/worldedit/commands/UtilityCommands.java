@@ -371,33 +371,24 @@ public class UtilityCommands {
             LocalSession session, LocalPlayer player, EditSession editSession)
             throws WorldEditException {
 
-        int killed;
-
-        final LocalWorld world = player.getWorld();
-        if (world == null) {
-            killed = 0;
-            for (LocalWorld world2 : we.getServer().getWorlds()) {
-                killed += butcherHelper(args, session, player, world2);
-            }
-        } else {
-            killed = butcherHelper(args, session, player, world);
-        }
-
-        player.print("Killed " + killed + " mobs.");
-    }
-
-    private static int butcherHelper(CommandContext args, LocalSession session, LocalPlayer player, final LocalWorld world) throws IncompleteRegionException {
         int radius = args.argsLength() > 0 ? Math.max(1, args.getInteger(0)) : -1;
-
-        Vector origin = session.getPlacementPosition(player);
 
         int flags = 0;
         if (args.hasFlag('p')) flags |= KillFlags.PETS;
         if (args.hasFlag('n')) flags |= KillFlags.NPCS;
         if (args.hasFlag('a')) flags |= KillFlags.ANIMALS;
 
-        int killed = world.killMobs(origin, radius, flags);
-        return killed;
+        int killed;
+        if (player.isPlayer()) {
+            killed = player.getWorld().killMobs(session.getPlacementPosition(player), radius, flags);
+        } else {
+            killed = 0;
+            for (LocalWorld world : we.getServer().getWorlds()) {
+                killed += world.killMobs(new Vector(), radius, flags);
+            }
+        }
+
+        player.print("Killed " + killed + " mobs.");
     }
 
     @Command(
@@ -457,6 +448,7 @@ public class UtilityCommands {
         min = 0,
         max = -1
     )
+    @Console
     public static void help(CommandContext args, WorldEdit we,
             LocalSession session, LocalPlayer player, EditSession editSession)
             throws WorldEditException {

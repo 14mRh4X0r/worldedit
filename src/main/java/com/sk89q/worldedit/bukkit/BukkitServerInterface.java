@@ -63,7 +63,7 @@ public class BukkitServerInterface extends ServerInterface {
         List<LocalWorld> ret = new ArrayList<LocalWorld>(worlds.size());
 
         for (World world : worlds) {
-            ret.add(new BukkitWorld(world));
+            ret.add(BukkitUtil.getLocalWorld(world));
         }
 
         return ret;
