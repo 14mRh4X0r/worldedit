@@ -15,12 +15,33 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
-
+ */
 package com.sk89q.worldedit.cui;
 
-import com.sk89q.worldedit.LocalPlayer;
+import com.sk89q.worldedit.Vector;
+import com.sk89q.worldedit.Vector2D;
 
-public interface CUIPointBasedRegion {
-    public void describeCUI(LocalPlayer player);
+public class SelectionCylinderEvent implements CUIEvent {
+
+    protected Vector pos;
+    protected Vector2D radius;
+
+    public SelectionCylinderEvent(Vector pos, Vector2D radius) {
+        this.pos = pos;
+        this.radius = radius;
+    }
+
+    public String getTypeId() {
+        return "cyl";
+    }
+
+    public String[] getParameters() {
+        return new String[] {
+                    String.valueOf(pos.getBlockX()),
+                    String.valueOf(pos.getBlockY()),
+                    String.valueOf(pos.getBlockZ()),
+                    String.valueOf(radius.getX()),
+                    String.valueOf(radius.getZ())
+                };
+    }
 }

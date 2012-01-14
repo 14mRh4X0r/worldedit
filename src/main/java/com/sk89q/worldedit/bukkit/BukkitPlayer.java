@@ -19,7 +19,7 @@
 
 package com.sk89q.worldedit.bukkit;
 
-import org.bukkit.*;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import com.sk89q.util.StringUtil;
@@ -141,6 +141,7 @@ public class BukkitPlayer extends LocalPlayer {
     @Override
     public void dispatchCUIHandshake() {
         player.sendRawMessage("\u00A75\u00A76\u00A74\u00A75");
+        player.sendRawMessage("\u00A74\u00A75\u00A73\u00A74");
     }
 
     public Player getPlayer() {

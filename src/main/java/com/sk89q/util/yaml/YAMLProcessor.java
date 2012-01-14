@@ -1,6 +1,6 @@
 // $Id$
 /*
- * RegionBook
+ * WorldEdit
  * Copyright (C) 2010, 2011 sk89q <http://www.sk89q.com>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,11 +22,16 @@ package com.sk89q.util.yaml;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.emitter.ScalarAnalysis;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.reader.UnicodeReader;
+import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -57,8 +62,6 @@ import java.util.Map;
  * <code>getBoolean("sturmeh.eats.babies", false)</code>. For lists, there are
  * methods such as <code>getStringList</code> that will return a type safe list.
  * 
- * <p>This class is currently incomplete. It is not yet possible to get a node.
- * </p>
  * 
  * @author sk89q
  */
@@ -70,10 +73,10 @@ public class YAMLProcessor extends YAMLNode {
     public YAMLProcessor(File file, boolean writeDefaults, YAMLFormat format) {
         super(new HashMap<String, Object>(), writeDefaults);
 
-        DumperOptions options = new DumperOptions();
+        DumperOptions options = new FancyDumperOptions();
         options.setIndent(4);
         options.setDefaultFlowStyle(format.getStyle());
-        Representer representer = new Representer();
+        Representer representer = new FancyRepresenter();
         representer.setDefaultFlowStyle(format.getStyle());
 
         yaml = new Yaml(new SafeConstructor(), representer, options);
@@ -91,13 +94,14 @@ public class YAMLProcessor extends YAMLNode {
      * @throws java.io.IOException
      */
     public void load() throws IOException {
-        FileInputStream stream = null;
+        InputStream stream = null;
 
         try {
-            stream = new FileInputStream(file);
+            stream = getInputStream();
+            if (stream == null) throw new IOException("Stream is null!");
             read(yaml.load(new UnicodeReader(stream)));
         } catch (YAMLProcessorException e) {
-            root = new HashMap<String, Object>();
+            root = new LinkedHashMap<String, Object>();
         } finally {
             try {
                 if (stream != null) {
@@ -154,7 +158,7 @@ public class YAMLProcessor extends YAMLNode {
      * @return true if it was successful
      */
     public boolean save() {
-        FileOutputStream stream = null;
+        OutputStream stream = null;
 
         File parent = file.getParentFile();
 
@@ -163,7 +167,8 @@ public class YAMLProcessor extends YAMLNode {
         }
 
         try {
-            stream = new FileOutputStream(file);
+            stream = getOutputStream();
+            if (stream == null) return false;
             OutputStreamWriter writer = new OutputStreamWriter(stream, "UTF-8");
             if (header != null) {
                 writer.append(header);
@@ -187,13 +192,21 @@ public class YAMLProcessor extends YAMLNode {
     private void read(Object input) throws YAMLProcessorException {
         try {
             if (null == input) {
-                root = new HashMap<String, Object>();
+                root = new LinkedHashMap<String, Object>();
             } else {
                 root = (Map<String, Object>) input;
             }
         } catch (ClassCastException e) {
             throw new YAMLProcessorException("Root document must be an key-value structure");
         }
+    }
+
+    public InputStream getInputStream() throws IOException {
+        return new FileInputStream(file);
+    }
+
+    public OutputStream getOutputStream() throws IOException {
+        return new FileOutputStream(file);
     }
 
     /**
@@ -203,5 +216,28 @@ public class YAMLProcessor extends YAMLNode {
      */
     public static YAMLNode getEmptyNode(boolean writeDefaults) {
         return new YAMLNode(new HashMap<String, Object>(), writeDefaults);
+    }
+    
+    // This will be included in snakeyaml 1.10, but until then we have to do it manually.
+    private static class FancyDumperOptions extends DumperOptions {
+        @Override
+        public DumperOptions.ScalarStyle calculateScalarStyle(ScalarAnalysis analysis,
+                                                              DumperOptions.ScalarStyle style) {
+            if (analysis.scalar.contains("\n") || analysis.scalar.contains("\r")) {
+                return ScalarStyle.LITERAL;
+            } else {
+                return super.calculateScalarStyle(analysis, style);
+            }
+        }
+    }
+    
+    private static class FancyRepresenter extends Representer {
+        public FancyRepresenter() {
+            this.nullRepresenter = new Represent() {
+                public Node representData(Object o) {
+                    return representScalar(Tag.NULL, "");
+                }
+            };
+        }
     }
 }

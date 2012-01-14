@@ -37,34 +37,29 @@ import com.sk89q.worldedit.data.ChunkStore;
  *
  * @author sk89q
  */
-public class Polygonal2DRegion implements Region {
-    protected List<BlockVector2D> points;
-    protected BlockVector min;
-    protected BlockVector max;
-    protected int minY;
-    protected int maxY;
-    protected boolean hasY = false;
-    protected LocalWorld world;
+public class Polygonal2DRegion extends AbstractRegion {
+    private List<BlockVector2D> points;
+    private BlockVector min;
+    private BlockVector max;
+    private int minY;
+    private int maxY;
+    private boolean hasY = false;
 
     /**
      * Construct the region
      */
     public Polygonal2DRegion() {
-        this(null);
+        this((LocalWorld) null);
     }
-    
+
     /**
      * Construct the region.
      * 
      * @param world
      */
     public Polygonal2DRegion(LocalWorld world) {
-        points = new ArrayList<BlockVector2D>();
-        minY = 0;
-        maxY = 0;
+        this(world, Collections.<BlockVector2D>emptyList(), 0, 0);
         hasY = false;
-        this.world = world;
-        recalculate();
     }
 
     /**
@@ -76,12 +71,17 @@ public class Polygonal2DRegion implements Region {
      * @param maxY
      */
     public Polygonal2DRegion(LocalWorld world, List<BlockVector2D> points, int minY, int maxY) {
-        this.points = points;
+        super(world);
+        this.points = new ArrayList<BlockVector2D>(points);
         this.minY = minY;
         this.maxY = maxY;
         hasY = true;
-        this.world = world;
         recalculate();
+    }
+
+    public Polygonal2DRegion(Polygonal2DRegion region) {
+        this(region.world, region.points, region.minY, region.maxY);
+        hasY = region.hasY;
     }
 
     /**
@@ -161,6 +161,15 @@ public class Polygonal2DRegion implements Region {
     }
 
     /**
+     * Get the minimum Y.
+     * 
+     * @return min y
+     */
+    public int getMininumY() {
+        return minY;
+    }
+
+    /**
      * Set the minimum Y.
      * 
      * @param y
@@ -172,7 +181,16 @@ public class Polygonal2DRegion implements Region {
     }
 
     /**
-     * Se the maximum Y.
+     * Get the maximum Y.
+     * 
+     * @return max y
+     */
+    public int getMaximumY() {
+        return maxY;
+    }
+
+    /**
+     * Set the maximum Y.
      * 
      * @param y
      */
@@ -281,6 +299,23 @@ public class Polygonal2DRegion implements Region {
         } else {
             maxY += changeY;
         }
+        recalculate();
+    }
+
+    @Override
+    public void shift(Vector change) throws RegionOperationException {
+        final double changeX = change.getX();
+        final double changeY = change.getY();
+        final double changeZ = change.getZ();
+
+        for (int i = 0; i < points.size(); ++i) {
+            BlockVector2D point = points.get(i);
+            points.set(i, new BlockVector2D(point.getX() + changeX, point.getZ() + changeZ));
+        }
+
+        minY += changeY;
+        maxY += changeY;
+
         recalculate();
     }
 
@@ -421,6 +456,7 @@ public class Polygonal2DRegion implements Region {
      * 
      * @return iterator of points inside the region
      */
+    @Override
     public Iterator<BlockVector> iterator() {
         return new Polygonal2DRegionIterator(this);
 
@@ -583,13 +619,5 @@ public class Polygonal2DRegion implements Region {
         public void remove() {
             throw new UnsupportedOperationException("Not supported");
         }
-    }
-
-    public LocalWorld getWorld() {
-        return world;
-    }
-
-    public void setWorld(LocalWorld world) {
-        this.world = world;
     }
 }

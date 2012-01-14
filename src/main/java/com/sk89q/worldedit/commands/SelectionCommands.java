@@ -23,17 +23,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 import com.sk89q.minecraft.util.commands.Command;
+import com.sk89q.minecraft.util.commands.CommandAlias;
 import com.sk89q.minecraft.util.commands.CommandContext;
 import com.sk89q.minecraft.util.commands.CommandPermissions;
 import com.sk89q.worldedit.*;
 import com.sk89q.worldedit.data.ChunkStore;
 import com.sk89q.worldedit.regions.CuboidRegionSelector;
+import com.sk89q.worldedit.regions.EllipsoidRegionSelector;
 import com.sk89q.worldedit.regions.ExtendingCuboidRegionSelector;
 import com.sk89q.worldedit.regions.Polygonal2DRegionSelector;
 import com.sk89q.worldedit.regions.Region;
 import com.sk89q.worldedit.regions.RegionOperationException;
 import com.sk89q.worldedit.regions.RegionSelector;
+import com.sk89q.worldedit.regions.SphereRegionSelector;
 import com.sk89q.worldedit.blocks.*;
+import com.sk89q.worldedit.regions.CylinderRegionSelector;
 
 /**
  * Selection commands.
@@ -404,10 +408,9 @@ public class SelectionCommands {
 
         try {
             Region region = session.getSelection(player.getWorld());
-            region.expand(dir.multiply(change));
-            region.contract(dir.multiply(change));
+            region.shift(dir.multiply(change));
             session.getRegionSelector(player.getWorld()).learnChanges();
-            
+
             session.getRegionSelector(player.getWorld()).explainRegionAdjust(player, session);
 
             player.print("Region shifted.");
@@ -591,7 +594,7 @@ public class SelectionCommands {
 
     @Command(
         aliases = { "/sel", ";" },
-        usage = "[cuboid|extend|poly]",
+        usage = "[cuboid|extend|poly|ellipsoid|sphere|cyl]",
         desc = "Choose a region selector",
         min = 0,
         max = 1
@@ -602,6 +605,8 @@ public class SelectionCommands {
         final LocalWorld world = player.getWorld();
         if (args.argsLength() == 0) {
             session.getRegionSelector(world).clear();
+            session.dispatchCUISelection(player);
+            player.print("Selection cleared.");
             return;
         }
 
@@ -616,13 +621,29 @@ public class SelectionCommands {
             selector = new ExtendingCuboidRegionSelector(oldSelector);
             player.print("Cuboid: left click for a starting point, right click to extend");
         } else if (typeName.equalsIgnoreCase("poly")) {
-            selector = new Polygonal2DRegionSelector(world);
+            selector = new Polygonal2DRegionSelector(oldSelector);
             player.print("2D polygon selector: Left/right click to add a point.");
+        } else if (typeName.equalsIgnoreCase("ellipsoid")) {
+            selector = new EllipsoidRegionSelector(oldSelector);
+            player.print("Ellipsoid selector: left click=center, right click to extend");
+        } else if (typeName.equalsIgnoreCase("sphere")) {
+            selector = new SphereRegionSelector(oldSelector);
+            player.print("Sphere selector: left click=center, right click to extend");
+        } else if (typeName.equalsIgnoreCase("cyl")) {
+            selector = new CylinderRegionSelector(oldSelector);
+            player.print("Cylindrical selector: Left click=center, right click to extend.");
         } else {
-            player.printError("Only 'cuboid', 'extend' and 'poly' are accepted.");
+            player.printError("Only cuboid|extend|poly|ellipsoid|sphere|cyl are accepted.");
             return;
         }
+
         session.setRegionSelector(world, selector);
         session.dispatchCUISelection(player);
+    }
+
+    @Command(aliases = {"/desel", "/deselect"}, desc = "Deselect the current selection")
+    @CommandAlias("/sel")
+    public void deselect() {
+
     }
 }

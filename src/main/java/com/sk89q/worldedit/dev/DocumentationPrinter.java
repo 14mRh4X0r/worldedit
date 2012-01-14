@@ -19,7 +19,10 @@
 
 package com.sk89q.worldedit.dev;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +30,6 @@ import java.util.List;
 import com.sk89q.minecraft.util.commands.Command;
 import com.sk89q.minecraft.util.commands.CommandPermissions;
 import com.sk89q.minecraft.util.commands.NestedCommand;
-import com.sk89q.util.StringUtil;
 import com.sk89q.worldedit.commands.ChunkCommands;
 import com.sk89q.worldedit.commands.ClipboardCommands;
 import com.sk89q.worldedit.commands.GeneralCommands;
@@ -51,7 +53,7 @@ public class DocumentationPrinter {
         System.out.println("Writing permissions wiki table...");
         writePermissionsWikiTable(commandClasses);
         System.out.println("Writing Bukkit plugin.yml...");
-        writeBukkitYAML(commandClasses);
+        writeBukkitYAML();
 
         System.out.println("Done!");
     }
@@ -175,13 +177,13 @@ public class DocumentationPrinter {
         }
     }
 
-    private static void writeBukkitYAML(List<Class<?>> commandClasses)
+    private static void writeBukkitYAML()
             throws IOException {
         FileOutputStream stream = null;
         try {
             stream = new FileOutputStream("plugin.yml");
             PrintStream print = new PrintStream(stream);
-            _writeBukkitYAML(print, commandClasses);
+            _writeBukkitYAML(print);
         } finally {
             if (stream != null) {
                 stream.close();
@@ -189,34 +191,11 @@ public class DocumentationPrinter {
         }
     }
 
-    private static void _writeBukkitYAML(PrintStream stream,
-            List<Class<?>> commandClasses) {
+    private static void _writeBukkitYAML(PrintStream stream) {
 
         stream.println("name: WorldEdit");
         stream.println("main: com.sk89q.worldedit.bukkit.WorldEditPlugin");
         stream.println("version: ${project.version}");
-        stream.println("commands:");
-
-        for (Class<?> cls : commandClasses) {
-            for (Method method : cls.getMethods()) {
-                if (!method.isAnnotationPresent(Command.class)) {
-                    continue;
-                }
-
-                Command cmd = method.getAnnotation(Command.class);
-
-                stream.println("    " + cmd.aliases()[0] + ":");
-                stream.println("        description: " + cmd.desc());
-                stream.println("        usage: /<command>"
-                        + (cmd.flags().length() > 0 ? " [-" + cmd.flags() + "]" : "")
-                        + (cmd.usage().length() > 0 ? " " + cmd.usage() : ""));
-                if (cmd.aliases().length > 1) {
-                    stream.println("        aliases: ["
-                            + StringUtil.joinQuotedString(cmd.aliases(), ", ", 1, "'")
-                            + "]");
-                }
-            }
-        }
 
         stream.println();
         stream.println();

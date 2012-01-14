@@ -22,7 +22,13 @@ package com.sk89q.worldedit.bukkit;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.bukkit.*;
+import com.sk89q.bukkit.util.CommandRegistration;
+import com.sk89q.minecraft.util.commands.Command;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.Server;
+import org.bukkit.World;
 import org.bukkit.entity.CreatureType;
 import com.sk89q.worldedit.LocalWorld;
 import com.sk89q.worldedit.ServerInterface;
@@ -30,10 +36,12 @@ import com.sk89q.worldedit.ServerInterface;
 public class BukkitServerInterface extends ServerInterface {
     public Server server;
     public WorldEditPlugin plugin;
+    private CommandRegistration dynamicCommands;
 
     public BukkitServerInterface(WorldEditPlugin plugin, Server server) {
         this.plugin = plugin;
         this.server = server;
+        dynamicCommands = new CommandRegistration(plugin);
     }
 
     @Override
@@ -67,5 +75,14 @@ public class BukkitServerInterface extends ServerInterface {
         }
 
         return ret;
+    }
+    
+    @Override
+    public void onCommandRegistration(List<Command> commands) {
+        dynamicCommands.registerAll(commands);
+    }
+    
+    public void unregisterCommands() {
+        dynamicCommands.unregisterCommands();
     }
 }

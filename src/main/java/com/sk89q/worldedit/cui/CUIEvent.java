@@ -20,6 +20,7 @@
 package com.sk89q.worldedit.cui;
 
 public interface CUIEvent {
+
     public String getTypeId();
 
     public String[] getParameters();

@@ -19,9 +19,12 @@
 
 package com.sk89q.worldedit.bukkit;
 
+import com.sk89q.util.StringUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.Event;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
@@ -30,15 +33,17 @@ import com.sk89q.worldedit.LocalPlayer;
 import com.sk89q.worldedit.LocalWorld;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldVector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Handles all events thrown in relation to a Player
  */
 public class WorldEditPlayerListener extends PlayerListener {
-    /**
-     * Plugin.
-     */
+    
     private WorldEditPlugin plugin;
+    private boolean ignoreLeftClickAir = false;
+    private final static Pattern cuipattern = Pattern.compile("u00a74u00a75u00a73u00a74([^|]*)\\|?(.*)");
 
     /**
      * Called when a player plays an animation, such as an arm swing
@@ -56,7 +61,8 @@ public class WorldEditPlayerListener extends PlayerListener {
 
         plugin.registerEvent("PLAYER_QUIT", this);
         plugin.registerEvent("PLAYER_INTERACT", this);
-        plugin.registerEvent("PLAYER_COMMAND_PREPROCESS", this);
+        plugin.registerEvent("PLAYER_COMMAND_PREPROCESS", this, Event.Priority.Low);
+        plugin.registerEvent("PLAYER_CHAT", this);
     }
 
     /**
@@ -82,12 +88,13 @@ public class WorldEditPlayerListener extends PlayerListener {
 
         String[] split = event.getMessage().split(" ");
 
-        if (plugin.getWorldEdit().handleCommand(plugin.wrapPlayer(event.getPlayer()), split)) {
-            event.setCancelled(true);
+        if (split.length > 0) {
+            split = plugin.getWorldEdit().commandDetection(split);
+            split[0] = "/" + split[0];
         }
-    }
 
-    private boolean ignoreLeftClickAir = false;
+        event.setMessage(StringUtil.joinString(split, " "));
+    }
 
     /**
      * Called when a player interacts
@@ -104,8 +111,8 @@ public class WorldEditPlayerListener extends PlayerListener {
         final LocalWorld world = player.getWorld();
         final WorldEdit we = plugin.getWorldEdit();
 
-        switch (event.getAction()) {
-        case LEFT_CLICK_BLOCK: {
+        Action action = event.getAction();
+        if (action == Action.LEFT_CLICK_BLOCK) {
             final Block clickedBlock = event.getClickedBlock();
             final WorldVector pos = new WorldVector(world, clickedBlock.getX(),
                     clickedBlock.getY(), clickedBlock.getZ());
@@ -129,22 +136,17 @@ public class WorldEditPlayerListener extends PlayerListener {
                     ignoreLeftClickAir = true;
                 }
             }
-
-            break;
-        }
-
-        case LEFT_CLICK_AIR:
+        } else if (action == Action.LEFT_CLICK_AIR) {
             if (ignoreLeftClickAir) {
-                break;
+                return;
             }
 
             if (we.handleArmSwing(player)) {
                 event.setCancelled(true);
             }
 
-            break;
 
-        case RIGHT_CLICK_BLOCK: {
+        } else if (action == Action.RIGHT_CLICK_BLOCK) {
             final Block clickedBlock = event.getClickedBlock();
             final WorldVector pos = new WorldVector(world, clickedBlock.getX(),
                     clickedBlock.getY(), clickedBlock.getZ());
@@ -156,14 +158,32 @@ public class WorldEditPlayerListener extends PlayerListener {
             if (we.handleRightClick(player)) {
                 event.setCancelled(true);
             }
-            break;
-        }
-
-        case RIGHT_CLICK_AIR:
+        } else if (action == Action.RIGHT_CLICK_AIR) {
             if (we.handleRightClick(player)) {
                 event.setCancelled(true);
             }
-            break;
+        }
+    }
+
+    @Override
+    public void onPlayerChat(PlayerChatEvent event) {
+        if (event.isCancelled()) {
+            return;
+        }
+        
+        Matcher matcher = cuipattern.matcher(event.getMessage());
+        if (matcher.find()) {
+            String type = matcher.group(1);
+            String args = matcher.group(2);
+            
+            if( type.equals("v") ) {
+                try {
+                    plugin.getSession(event.getPlayer()).setCUIVersion(Integer.parseInt(args));
+                    event.setCancelled(true);
+                } catch( NumberFormatException e ) {
+                }
+            }
+            
         }
     }
 }

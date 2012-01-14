@@ -18,7 +18,13 @@
  */
 package com.sk89q.worldedit.util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -93,7 +99,7 @@ public class PropertiesConfiguration extends LocalConfiguration {
         LocalSession.MAX_HISTORY_SIZE = Math.max(15, getInt("history-size", 15));
 
         String snapshotsDir = getString("snapshots-dir", "");
-        if (!snapshotsDir.isEmpty()) {
+        if (snapshotsDir.length() > 0) {
             snapshotRepo = new SnapshotRepository(snapshotsDir);
         }
 

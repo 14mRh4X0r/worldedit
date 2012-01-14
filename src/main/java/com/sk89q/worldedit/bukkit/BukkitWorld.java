@@ -457,9 +457,8 @@ public class BukkitWorld extends LocalWorld {
     @Override
     public void dropItem(Vector pt, BaseItemStack item) {
         ItemStack bukkitItem = new ItemStack(item.getType(), item.getAmount(),
-                (byte) item.getDamage());
-        world.dropItemNaturally(toLocation(pt), bukkitItem);
-
+                item.getDamage());
+        world.dropItemNaturally(BukkitUtil.toLocation(world, pt), bukkitItem);
     }
 
     /**
@@ -475,6 +474,7 @@ public class BukkitWorld extends LocalWorld {
         boolean killPets = (flags & KillFlags.PETS) != 0;
         boolean killNPCs = (flags & KillFlags.NPCS) != 0;
         boolean killAnimals = (flags & KillFlags.ANIMALS) != 0;
+        boolean withLightning = (flags & KillFlags.WITH_LIGHTNING) != 0;
 
         int num = 0;
         double radiusSq = radius * radius;
@@ -502,6 +502,9 @@ public class BukkitWorld extends LocalWorld {
             } catch (ClassNotFoundException e) {}
 
             if (radius < 0 || bukkitOrigin.distanceSquared(ent.getLocation()) <= radiusSq) {
+                if (withLightning) {
+                    world.strikeLightningEffect(ent.getLocation());
+                }
                 ent.remove();
                 ++num;
             }
@@ -567,10 +570,6 @@ public class BukkitWorld extends LocalWorld {
         }
 
         return num;
-    }
-
-    private Location toLocation(Vector pt) {
-        return new Location(world, pt.getX(), pt.getY(), pt.getZ());
     }
 
     /**
@@ -686,7 +685,7 @@ public class BukkitWorld extends LocalWorld {
             if (contents[i] != null) {
                 ItemStack toAdd = new ItemStack(contents[i].getType(),
                         contents[i].getAmount(),
-                        (byte) contents[i].getDamage());
+                        contents[i].getDamage());
                 try {
                     for (Map.Entry<Integer, Integer> entry : contents[i].getEnchantments().entrySet()) {
                         toAdd.addEnchantment(Enchantment.getById(entry.getKey()), entry.getValue());
