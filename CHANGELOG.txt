@@ -1,4 +1,4 @@
-5.1-SNAPSHOT:
+5.1:
  - Added a //help command (alias /we help).
  - Fixed a NullPointerException in conjunction with CraftBook.
  - Added support for console commands to WorldEditPlugin.
@@ -23,6 +23,8 @@
  - Allow copying item stacks with damage of > Byte.MAX_VALUE. Closes #972
  - Improved output of YAMLProcessor and added support for root-level comments. (for developers!)
  - Removed support for Permissions2/3
+ - Performance improvements
+ - 1.1 compatibility
  Thanks to everyone for their contributions:
  rjwboys, yetanotherx, and GiCodeWarrior
 

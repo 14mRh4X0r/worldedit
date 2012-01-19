@@ -24,28 +24,15 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 
-import com.sk89q.minecraft.util.commands.Command;
-import com.sk89q.minecraft.util.commands.CommandPermissions;
-import com.sk89q.minecraft.util.commands.Console;
 import com.sk89q.util.yaml.YAMLProcessor;
 import com.sk89q.wepif.PermissionsResolverManager;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event.Priority;
-import org.bukkit.event.Event;
-import org.bukkit.event.Listener;
-import org.bukkit.plugin.PluginManager;
-import org.bukkit.plugin.SimplePluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.sk89q.worldedit.*;
 import com.sk89q.worldedit.bags.BlockBag;
@@ -113,43 +100,10 @@ public class WorldEditPlugin extends JavaPlugin {
         api = new WorldEditAPI(this);
 
         // Now we can register events!
-        registerEvents();
+        getServer().getPluginManager().registerEvents(new WorldEditListener(this), this);
 
         getServer().getScheduler().scheduleAsyncRepeatingTask(this,
                 new SessionTimer(controller, getServer()), 120, 120);
-
-        PluginManager pm = getServer().getPluginManager();
-        if (pm instanceof SimplePluginManager) {
-            try {
-                SimplePluginManager spm = (SimplePluginManager) pm;
-                Field SimplePluginManager_commandMap = SimplePluginManager.class.getField("commandMap");
-                SimplePluginManager_commandMap.setAccessible(true);
-                SimpleCommandMap scm = (SimpleCommandMap) SimplePluginManager_commandMap.get(spm);
-
-
-                Map<Method, Map<String, Method>> commands = controller.getCommandsManager().getMethods();
-                for (Entry<String, Method> entry : commands.get(null).entrySet()) {
-                    Method method = entry.getValue();
-                    if (!method.isAnnotationPresent(Console.class)) {
-                        continue;
-                    }
-
-                    String alias = entry.getKey();
-                    Command command = method.getAnnotation(com.sk89q.minecraft.util.commands.Command.class);
-                    CommandPermissions commandPermissions = method.getAnnotation(com.sk89q.minecraft.util.commands.CommandPermissions.class);
-
-                    if (scm.getCommand(alias) != null) {
-                        System.out.println("WorldEdit: Cannot register command " + alias + " for console usage: already registered.");
-                        continue;
-                    }
-
-                    scm.register("we", new WorldEditCommand(command, commandPermissions));
-                }
-            } catch (Exception e) {
-                System.out.println("WorldEdit: Cannot register commands for console usage:");
-                e.printStackTrace();
-            }
-        }
     }
 
     /**
@@ -175,40 +129,6 @@ public class WorldEditPlugin extends JavaPlugin {
         config.unload();
         config.load();
         getPermissionsResolver().load();
-    }
-
-    /**
-     * Register the events used by WorldEdit.
-     */
-    protected void registerEvents() {
-        new WorldEditPlayerListener(this);
-        new WorldEditCriticalPlayerListener(this);
-    }
-
-    /**
-     * Register an event.
-     * 
-     * @param typeName
-     * @param listener
-     * @param priority
-     */
-    public void registerEvent(String typeName, Listener listener, Priority priority) {
-        try {
-            Event.Type type = Event.Type.valueOf(typeName);
-            getServer().getPluginManager().registerEvent(type, listener, priority, this);
-        } catch (IllegalArgumentException e) {
-            logger.info("WorldEdit: Unable to register missing event type " + typeName);
-        }
-    }
-
-    /**
-     * Register an event at normal priority.
-     * 
-     * @param typeName
-     * @param listener
-     */
-    public void registerEvent(String typeName, Listener listener) {
-        registerEvent(typeName, listener, Event.Priority.Normal);
     }
 
     /**
