@@ -353,7 +353,7 @@ public class HMWorld extends LocalWorld {
 
     @Override
     public int hashCode() {
-        return 1;
+        return world.hashCode();
     }
 
     @Override
@@ -595,7 +595,7 @@ public class HMWorld extends LocalWorld {
         
         for (Mob mob : world.getAnimalList()) {
             if (!killPets && (mob.getMob() instanceof OEntityWolf)
-                    && ((OEntityWolf)mob.getMob()).z())
+                    && ((OEntityWolf)mob.getMob()).C())
                 continue;
             Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
             if (mob.getHealth() > 0

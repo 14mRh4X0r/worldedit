@@ -69,6 +69,7 @@ public class MinecraftServerInterface {
     /**
      * Generate a tree at a location.
      *
+     * @param editSession 
      * @param pt
      * @return
      */
@@ -79,6 +80,7 @@ public class MinecraftServerInterface {
     /**
      * Generate a big tree at a location.
      *
+     * @param editSession 
      * @param pt
      * @return
      */

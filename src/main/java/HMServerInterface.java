@@ -18,6 +18,8 @@
 */
 
 import com.sk89q.worldedit.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -53,4 +55,35 @@ public class HMServerInterface extends ServerInterface {
     public void reload() {
         listener.loadConfiguration();
     }
+    
+    @Override
+    public int schedule(long delay, long period, Runnable task) {
+        etc.getServer().addToServerQueue(wrapPeriodicTask(task, period), delay);
+        return 0;
+    }
+
+    @Override
+    public List<LocalWorld> getWorlds() {
+        Server s = etc.getServer();
+        List<LocalWorld> toRet = new ArrayList<LocalWorld>();
+        
+        toRet.add(new HMWorld(s.getWorld(-1)));
+        toRet.add(new HMWorld(s.getWorld(0)));
+        toRet.add(new HMWorld(s.getWorld(1)));
+        
+        return toRet;
+    }
+
+    private Runnable wrapPeriodicTask(final Runnable task, final long period) {
+        return new Runnable() {
+            @Override public void run() {
+                if (period > 0)
+                    etc.getServer().addToServerQueue(wrapPeriodicTask(task, period), period);
+                task.run();
+                if (period < 0)
+                    etc.getServer().addToServerQueue(wrapPeriodicTask(task, period), -period);
+            }
+        };
+    }
+    
 }

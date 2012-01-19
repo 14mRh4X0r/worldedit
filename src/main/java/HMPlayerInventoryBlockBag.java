@@ -62,6 +62,7 @@ public class HMPlayerInventoryBlockBag extends BlockBag {
      *
      * @param id
      */
+    @Override
     public void fetchBlock(int id) throws BlockBagException {
         if (id == 0) {
             throw new IllegalArgumentException("Can't fetch air block");
@@ -107,6 +108,7 @@ public class HMPlayerInventoryBlockBag extends BlockBag {
      * 
      * @param id
      */
+    @Override
     public void storeBlock(int id) throws BlockBagException {
         if (id == 0) {
             throw new IllegalArgumentException("Can't store air block");
@@ -170,7 +172,6 @@ public class HMPlayerInventoryBlockBag extends BlockBag {
      * Adds a position to be used a source.
      *
      * @param pos
-     * @return
      */
     public void addSourcePosition(Vector pos) {
     }
@@ -178,7 +179,6 @@ public class HMPlayerInventoryBlockBag extends BlockBag {
      * Adds a position to be used a source.
      *
      * @param pos
-     * @return
      */
     public void addSingleSourcePosition(Vector pos) {
     }
