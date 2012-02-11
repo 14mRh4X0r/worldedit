@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,11 @@ public class WorldEditPlugin extends CommonPlugin implements Named {
      * Holds the configuration for WorldEdit.
      */
     private YAMLConfiguration config;
+
+    private static WorldEditPlugin instance;
+    {
+        instance = this;
+    }
 
     /**
      * Called on plugin enable.
@@ -350,5 +355,9 @@ public class WorldEditPlugin extends CommonPlugin implements Named {
     @Override
     public String getName() {
         return getDescription().getName();
+    }
+
+    static WorldEditPlugin getInstance() {
+        return instance;
     }
 }

@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -145,8 +145,12 @@ public class BaseBlock {
         if (!(o instanceof BaseBlock)) {
             return false;
         }
-        return (type == ((BaseBlock) o).type)
-                && (data == ((BaseBlock) o).data || data == -1 || ((BaseBlock) o).data == -1);
+
+        return type == ((BaseBlock) o).type && data == ((BaseBlock) o).data;
+    }
+
+    public boolean equalsFuzzy(BaseBlock o) {
+        return (type == o.type && data == o.data) || data == -1 || o.data == -1;
     }
 
     @Override
@@ -161,9 +165,17 @@ public class BaseBlock {
         return "BaseBlock id: " + getType() + " with damage: " + getData();
     }
 
+    /**
+     * 
+     *
+     * @param iter
+     * @return
+     * @deprecated This method is silly
+     */
+    @Deprecated
     public boolean inIterable(Iterable<BaseBlock> iter) {
         for (BaseBlock block : iter) {
-            if (block.equals(this)) {
+            if (block.equalsFuzzy(this)) {
                 return true;
             }
         }

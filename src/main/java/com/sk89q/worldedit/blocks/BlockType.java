@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,15 +19,12 @@
 
 package com.sk89q.worldedit.blocks;
 
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.EnumSet;
 import java.util.Random;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
+import java.util.Set;
 
 import com.sk89q.util.StringUtil;
 import com.sk89q.worldedit.PlayerDirection;
@@ -165,7 +162,7 @@ public enum BlockType {
     /**
      * Stores a map of the IDs for fast access.
      */
-    private static BlockType[] ids = new BlockType[256];
+    private static final Map<Integer, BlockType> ids = new HashMap<Integer, BlockType>();
     /**
      * Stores a map of the names for fast access.
      */
@@ -176,13 +173,8 @@ public enum BlockType {
     private final String[] lookupKeys;
 
     static {
-        for (BlockType type : values()) {
-            if (ids.length > type.id) {
-                ids[type.id] = type;
-            } else {
-                ids = Arrays.copyOf(ids, type.id + 10);
-                ids[type.id] = type;
-            }
+        for (BlockType type : EnumSet.allOf(BlockType.class)) {
+            ids.put(type.id, type);
             for (String key : type.lookupKeys) {
                 lookup.put(key, type);
             }
@@ -221,11 +213,7 @@ public enum BlockType {
      * @return
      */
     public static BlockType fromID(int id) {
-        if (id < 0 || id >= ids.length) {
-            return null;
-        } else {
-            return ids[id];
-        }
+        return ids.get(id);
     }
 
     /**
@@ -246,34 +234,11 @@ public enum BlockType {
      * @return
      */
     public static BlockType lookup(String name, boolean fuzzy) {
-        String testName = name.replace(" ", "").toLowerCase();
-
-        BlockType type = lookup.get(testName);
-
-        if (type != null) {
-            return type;
+        try {
+            return fromID(Integer.parseInt(name));
+        } catch (NumberFormatException e) {
+            return StringUtil.lookup(lookup, name, fuzzy);
         }
-
-        if (!fuzzy) {
-            return null;
-        }
-
-        int minDist = -1;
-
-        for (Entry<String, BlockType> entry : lookup.entrySet()) {
-            if (entry.getKey().charAt(0) != testName.charAt(0)) {
-                continue;
-            }
-
-            int dist = StringUtil.getLevenshteinDistance(entry.getKey(), testName);
-
-            if ((dist < minDist || minDist == -1) && dist < 2) {
-                minDist = dist;
-                type = entry.getValue();
-            }
-        }
-
-        return type;
     }
 
     /**
@@ -298,7 +263,7 @@ public enum BlockType {
     /**
      * HashSet for shouldPlaceLast.
      */
-    private static final TIntSet shouldPlaceLast = new TIntHashSet();
+    private static final Set<Integer> shouldPlaceLast = new HashSet<Integer>();
     static {
         shouldPlaceLast.add(BlockID.SAPLING);
         shouldPlaceLast.add(BlockID.BED);
@@ -359,7 +324,7 @@ public enum BlockType {
     /**
      * HashSet for shouldPlaceLast.
      */
-    private static final TIntSet shouldPlaceFinal = new TIntHashSet();
+    private static final Set<Integer> shouldPlaceFinal = new HashSet<Integer>();
     static {
         shouldPlaceFinal.add(BlockID.SIGN_POST);
         shouldPlaceFinal.add(BlockID.WOODEN_DOOR);
@@ -387,7 +352,7 @@ public enum BlockType {
     /**
      * HashSet for canPassThrough.
      */
-    private static final TIntSet canPassThrough = new TIntHashSet();
+    private static final Set<Integer> canPassThrough = new HashSet<Integer>();
     static {
         canPassThrough.add(BlockID.AIR);
         canPassThrough.add(BlockID.WATER);
@@ -451,7 +416,7 @@ public enum BlockType {
     /**
      * HashSet for usesData.
      */
-    private static final TIntSet usesData = new TIntHashSet();
+    private static final Set<Integer> usesData = new HashSet<Integer>();
     static {
         usesData.add(BlockID.SAPLING);
         usesData.add(BlockID.WATER);
@@ -543,7 +508,7 @@ public enum BlockType {
     /**
      * HashSet for isContainerBlock.
      */
-    private static final TIntSet isContainerBlock = new TIntHashSet();
+    private static final Set<Integer> isContainerBlock = new HashSet<Integer>();
     static {
         isContainerBlock.add(BlockID.DISPENSER);
         isContainerBlock.add(BlockID.FURNACE);
@@ -574,7 +539,7 @@ public enum BlockType {
     /**
      * HashSet for isRedstoneBlock.
      */
-    private static final TIntSet isRedstoneBlock = new TIntHashSet();
+    private static final Set<Integer> isRedstoneBlock = new HashSet<Integer>();
     static {
         isRedstoneBlock.add(BlockID.POWERED_RAIL);
         isRedstoneBlock.add(BlockID.DETECTOR_RAIL);
@@ -618,7 +583,7 @@ public enum BlockType {
     /**
      * HashSet for canTransferRedstone.
      */
-    private static final TIntSet canTransferRedstone = new TIntHashSet();
+    private static final Set<Integer> canTransferRedstone = new HashSet<Integer>();
     static {
         canTransferRedstone.add(BlockID.REDSTONE_TORCH_OFF);
         canTransferRedstone.add(BlockID.REDSTONE_TORCH_ON);
@@ -651,7 +616,7 @@ public enum BlockType {
     /**
      * HashSet for isRedstoneSource.
      */
-    private static final TIntSet isRedstoneSource = new TIntHashSet();
+    private static final Set<Integer> isRedstoneSource = new HashSet<Integer>();
     static {
         isRedstoneSource.add(BlockID.DETECTOR_RAIL);
         isRedstoneSource.add(BlockID.REDSTONE_TORCH_OFF);
@@ -684,7 +649,7 @@ public enum BlockType {
     /**
      * HashSet for isRailBlock.
      */
-    private static final TIntSet isRailBlock = new TIntHashSet();
+    private static final Set<Integer> isRailBlock = new HashSet<Integer>();
     static {
         isRailBlock.add(BlockID.POWERED_RAIL);
         isRailBlock.add(BlockID.DETECTOR_RAIL);
@@ -713,7 +678,7 @@ public enum BlockType {
     /**
      * HashSet for isNaturalBlock.
      */
-    private static final TIntSet isNaturalTerrainBlock = new TIntHashSet();
+    private static final Set<Integer> isNaturalTerrainBlock = new HashSet<Integer>();
     static {
         isNaturalTerrainBlock.add(BlockID.STONE);
         isNaturalTerrainBlock.add(BlockID.GRASS);
@@ -762,7 +727,7 @@ public enum BlockType {
     /**
      * HashSet for emitsLight.
      */
-    private static final TIntSet emitsLight = new TIntHashSet();
+    private static final Set<Integer> emitsLight = new HashSet<Integer>();
     static {
         emitsLight.add(BlockID.LAVA);
         emitsLight.add(BlockID.STATIONARY_LAVA);
@@ -796,7 +761,7 @@ public enum BlockType {
     /**
      * HashSet for isTranslucent.
      */
-    private static final TIntSet isTranslucent = new TIntHashSet();
+    private static final Set<Integer> isTranslucent = new HashSet<Integer>();
     static {
         isTranslucent.add(BlockID.AIR);
         isTranslucent.add(BlockID.SAPLING);
@@ -1255,8 +1220,8 @@ public enum BlockType {
         }
     }
 
-    private static final TIntObjectMap<PlayerDirection> dataAttachments = new TIntObjectHashMap<PlayerDirection>();
-    private static final TIntObjectMap<PlayerDirection> nonDataAttachments = new TIntObjectHashMap<PlayerDirection>();
+    private static final Map<Integer, PlayerDirection> dataAttachments = new HashMap<Integer, PlayerDirection>();
+    private static final Map<Integer, PlayerDirection> nonDataAttachments = new HashMap<Integer, PlayerDirection>();
     static {
         nonDataAttachments.put(BlockID.SAPLING, PlayerDirection.DOWN);
         nonDataAttachments.put(BlockID.POWERED_RAIL, PlayerDirection.DOWN);

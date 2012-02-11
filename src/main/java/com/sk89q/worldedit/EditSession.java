@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEditLibrary
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,8 +39,6 @@ import com.sk89q.worldedit.expression.ExpressionException;
 import com.sk89q.worldedit.expression.runtime.RValue;
 import com.sk89q.worldedit.masks.Mask;
 import com.sk89q.worldedit.patterns.*;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
 
 /**
  * This class can wrap all block editing operations into one "edit session" that
@@ -120,7 +118,7 @@ public class EditSession {
     /**
      * List of missing blocks;
      */
-    private TIntSet missingBlocks = new TIntHashSet();
+    private Set<Integer> missingBlocks = new HashSet<Integer>();
 
     /**
      * Mask to cover operations.
@@ -219,7 +217,7 @@ public class EditSession {
 
         final boolean result;
 
-        if (BlockType.usesData(type)) {
+        if (world.usesBlockData(type)) {
             if (fastMode) {
                 result = world.setTypeIdAndDataFast(pt, type, block.getData() > -1 ? block.getData() : 0);
             } else {
@@ -662,9 +660,9 @@ public class EditSession {
      *
      * @return
      */
-    public TIntSet popMissingBlocks() {
-        TIntSet missingBlocks = this.missingBlocks;
-        this.missingBlocks = new TIntHashSet();
+    public Set<Integer> popMissingBlocks() {
+        Set<Integer> missingBlocks = this.missingBlocks;
+        this.missingBlocks = new HashSet<Integer>();
         return missingBlocks;
     }
 
@@ -1246,8 +1244,20 @@ public class EditSession {
      * @return number of blocks affected
      * @throws MaxChangedBlocksException
      */
-    public int replaceBlocks(Region region, Set<BaseBlock> fromBlockTypes,
-            BaseBlock toBlock) throws MaxChangedBlocksException {
+    public int replaceBlocks(Region region, Set<BaseBlock> fromBlockTypes, BaseBlock toBlock) throws MaxChangedBlocksException {
+        Set<BaseBlock> definiteBlockTypes = new HashSet<BaseBlock>();
+        Set<Integer> fuzzyBlockTypes = new HashSet<Integer>();
+
+        if (fromBlockTypes != null) {
+            for (BaseBlock block : fromBlockTypes) {
+                if (block.getData() == -1) {
+                    fuzzyBlockTypes.add(block.getType());
+                } else {
+                    definiteBlockTypes.add(block);
+                }
+            }
+        }
+
         int affected = 0;
 
         if (region instanceof CuboidRegion) {
@@ -1268,11 +1278,20 @@ public class EditSession {
                         Vector pt = new Vector(x, y, z);
                         BaseBlock curBlockType = getBlock(pt);
 
-                        if ((fromBlockTypes == null && !curBlockType.isAir())
-                                || (fromBlockTypes != null && curBlockType.inIterable(fromBlockTypes))) { // Probably faster if someone adds a proper hashCode to BaseBlock
-                            if (setBlock(pt, toBlock)) {
-                                ++affected;
+                        if (fromBlockTypes == null) {
+                            //replace <to-block>
+                            if (curBlockType.isAir()) {
+                                continue;
                             }
+                        } else {
+                            //replace <from-block> <to-block>
+                            if (!definiteBlockTypes.contains(curBlockType) && !fuzzyBlockTypes.contains(curBlockType.getType())) {
+                                continue;
+                            }
+                        }
+
+                        if (setBlock(pt, toBlock)) {
+                            ++affected;
                         }
                     }
                 }
@@ -1281,11 +1300,20 @@ public class EditSession {
             for (Vector pt : region) {
                 BaseBlock curBlockType = getBlock(pt);
 
-                if (fromBlockTypes == null && !curBlockType.isAir()
-                        || fromBlockTypes != null && curBlockType.inIterable(fromBlockTypes)) {
-                    if (setBlock(pt, toBlock)) {
-                        ++affected;
+                if (fromBlockTypes == null) {
+                    //replace <to-block>
+                    if (curBlockType.isAir()) {
+                        continue;
                     }
+                } else {
+                    //replace <from-block> <to-block>
+                    if (!definiteBlockTypes.contains(curBlockType) && !fuzzyBlockTypes.contains(curBlockType.getType())) {
+                        continue;
+                    }
+                }
+
+                if (setBlock(pt, toBlock)) {
+                    ++affected;
                 }
             }
         }
@@ -1302,8 +1330,19 @@ public class EditSession {
      * @return number of blocks affected
      * @throws MaxChangedBlocksException
      */
-    public int replaceBlocks(Region region, Set<BaseBlock> fromBlockTypes,
-            Pattern pattern) throws MaxChangedBlocksException {
+    public int replaceBlocks(Region region, Set<BaseBlock> fromBlockTypes, Pattern pattern) throws MaxChangedBlocksException {
+        Set<BaseBlock> definiteBlockTypes = new HashSet<BaseBlock>();
+        Set<Integer> fuzzyBlockTypes = new HashSet<Integer>();
+        if (fromBlockTypes != null) {
+            for (BaseBlock block : fromBlockTypes) {
+                if (block.getData() == -1) {
+                    fuzzyBlockTypes.add(block.getType());
+                } else {
+                    definiteBlockTypes.add(block);
+                }
+            }
+        }
+
         int affected = 0;
 
         if (region instanceof CuboidRegion) {
@@ -1324,11 +1363,20 @@ public class EditSession {
                         Vector pt = new Vector(x, y, z);
                         BaseBlock curBlockType = getBlock(pt);
 
-                        if ((fromBlockTypes == null && !curBlockType.isAir())
-                                || (fromBlockTypes != null && curBlockType.inIterable(fromBlockTypes))) { // Probably faster if someone adds a proper hashCode to BaseBlock
-                            if (setBlock(pt, pattern.next(pt))) {
-                                ++affected;
+                        if (fromBlockTypes == null) {
+                            //replace <to-block>
+                            if (curBlockType.isAir()) {
+                                continue;
                             }
+                        } else {
+                            //replace <from-block> <to-block>
+                            if (!definiteBlockTypes.contains(curBlockType) && !fuzzyBlockTypes.contains(curBlockType.getType())) {
+                                continue;
+                            }
+                        }
+
+                        if (setBlock(pt, pattern.next(pt))) {
+                            ++affected;
                         }
                     }
                 }
@@ -1337,11 +1385,20 @@ public class EditSession {
             for (Vector pt : region) {
                 BaseBlock curBlockType = getBlock(pt);
 
-                if (fromBlockTypes == null && !curBlockType.isAir()
-                        || curBlockType.inIterable(fromBlockTypes)) {
-                    if (setBlock(pt, pattern.next(pt))) {
-                        ++affected;
+                if (fromBlockTypes == null) {
+                    //replace <to-block>
+                    if (curBlockType.isAir()) {
+                        continue;
                     }
+                } else {
+                    //replace <from-block> <to-block>
+                    if (!definiteBlockTypes.contains(curBlockType) && !fuzzyBlockTypes.contains(curBlockType.getType())) {
+                        continue;
+                    }
+                }
+
+                if (setBlock(pt, pattern.next(pt))) {
+                    ++affected;
                 }
             }
         }
@@ -1433,7 +1490,7 @@ public class EditSession {
         for (int x = minX; x <= maxX; ++x) {
             for (int y = minY; y <= maxY; ++y) {
                 Vector minV = new Vector(x, y, minZ);
-                if (setBlock(min, pattern.next(minV))) {
+                if (setBlock(minV, pattern.next(minV))) {
                     ++affected;
                 }
                 Vector maxV = new Vector(x, y, maxZ);

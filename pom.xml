@@ -27,21 +27,22 @@
       <url>http://mvn2.sk89q.com/repo</url>
     </repository>
     <repository>
-      <id>bukkit-releases</id>
-      <url>http://repo.bukkit.org/content/repositories/releases</url>
+      <id>bukkit-repo</id>
+      <url>http://repo.bukkit.org/content/groups/public</url>
     </repository>
     <repository>
-        <id>spout-repo</id>
-        <url>http://repo.getspout.org</url>
+      <id>spout-repo</id>
+      <url>http://repo.getspout.org</url>
     </repository>
   </repositories>
 
   <dependencies>
-    <!-- Used for PermissionsEx support -->
+    <!-- Used for Permissions support (this version has both the legacy API 
+      and the new Permissions API to compile against -->
     <dependency>
       <groupId>com.sk89q</groupId>
       <artifactId>dummypermscompat</artifactId>
-      <version>1.5</version>
+      <version>1.6</version>
     </dependency>
 
     <!-- Bukkit -->
@@ -102,14 +103,6 @@
       <groupId>org.spout</groupId>
       <artifactId>spoutapi</artifactId>
       <version>dev-SNAPSHOT</version>
-    </dependency>
-
-    <dependency>
-      <groupId>net.sf.trove4j</groupId>
-      <artifactId>trove4j</artifactId>
-      <version>3.0.2</version>
-      <type>jar</type>
-      <scope>compile</scope>
     </dependency>
   </dependencies>
 
@@ -194,10 +187,8 @@
                 <!-- We want to bundle in the modified jchronic library -->
                 <includes>
                   <include>com.sk89q:jchronic</include>
-                  <include>net.sf.trove4j:trove4j</include>
                 </includes>
               </artifactSet>
-              <minimizeJar>true</minimizeJar>
             </configuration>
           </execution>
         </executions>

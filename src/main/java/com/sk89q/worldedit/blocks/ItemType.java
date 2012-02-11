@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,14 +19,14 @@
 
 package com.sk89q.worldedit.blocks;
 
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.HashMap;
+import java.util.EnumSet;
+import java.util.Set;
 
 import com.sk89q.util.StringUtil;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
 
 /**
  * ItemType types.
@@ -307,7 +307,7 @@ public enum ItemType {
     /**
      * Stores a map of the IDs for fast access.
      */
-    private static ItemType[] ids = new ItemType[3200];
+    private static final Map<Integer, ItemType> ids = new HashMap<Integer, ItemType>();
     /**
      * Stores a map of the names for fast access.
      */
@@ -318,13 +318,8 @@ public enum ItemType {
     private final String[] lookupKeys;
 
     static {
-        for (ItemType type : values()) {
-            if (ids.length > type.id) {
-                ids[type.id] = type;
-            } else {
-                ids = Arrays.copyOf(ids, type.id + 10);
-                ids[type.id] = type;
-            }
+        for (ItemType type : EnumSet.allOf(ItemType.class)) {
+            ids.put(type.id, type);
             for (String key : type.lookupKeys) {
                 lookup.put(key, type);
             }
@@ -363,11 +358,7 @@ public enum ItemType {
      * @return
      */
     public static ItemType fromID(int id) {
-        if (id < 0 || id >= ids.length) {
-            return null;
-        } else {
-            return ids[id];
-        }
+        return ids.get(id);
     }
 
     /**
@@ -377,7 +368,7 @@ public enum ItemType {
      * @return
      */
     public static String toName(int id) {
-        ItemType type = fromID(id);
+        ItemType type = ids.get(id);
         if (type != null) {
             return type.getName();
         } else {
@@ -395,7 +386,7 @@ public enum ItemType {
         if (id == 0) {
             return "Hand";
         }
-        ItemType type = fromID(id);
+        ItemType type = ids.get(id);
         if (type != null) {
             return type.getName();
         } else {
@@ -421,34 +412,11 @@ public enum ItemType {
      * @return
      */
     public static ItemType lookup(String name, boolean fuzzy) {
-        String testName = name.replace(" ", "").toLowerCase();
-
-        ItemType type = lookup.get(testName);
-
-        if (type != null) {
-            return type;
+        try {
+            return fromID(Integer.parseInt(name));
+        } catch (NumberFormatException e) {
+            return StringUtil.lookup(lookup, name, fuzzy);
         }
-
-        if (!fuzzy) {
-            return null;
-        }
-
-        int minDist = -1;
-
-        for (Entry<String, ItemType> entry : lookup.entrySet()) {
-            if (entry.getKey().charAt(0) != testName.charAt(0)) {
-                continue;
-            }
-
-            int dist = StringUtil.getLevenshteinDistance(entry.getKey(), testName);
-
-            if ((dist < minDist || minDist == -1) && dist < 2) {
-                minDist = dist;
-                type = entry.getValue();
-            }
-        }
-
-        return type;
     }
 
     /**
@@ -478,7 +446,7 @@ public enum ItemType {
         return lookupKeys;
     }
 
-    private static final TIntSet shouldNotStack = new TIntHashSet();
+    private static final Set<Integer> shouldNotStack = new HashSet<Integer>();
     static {
         shouldNotStack.add(ItemID.IRON_SHOVEL);
         shouldNotStack.add(ItemID.IRON_PICK);
@@ -568,7 +536,7 @@ public enum ItemType {
         return shouldNotStack.contains(id);
     }
 
-    private static final TIntSet usesDamageValue = new TIntHashSet();
+    private static final Set<Integer> usesDamageValue = new HashSet<Integer>();
     static {
         usesDamageValue.add(BlockID.SAPLING);
         //usesDamageValue.add(BlockID.WATER);

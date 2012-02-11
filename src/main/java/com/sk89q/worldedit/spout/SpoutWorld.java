@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,8 +70,7 @@ public class SpoutWorld extends LocalWorld {
      */
     @Override
     public boolean setBlockType(Vector pt, int type) {
-        world.setBlockId(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(), (short)type);
-        return world.getBlockId(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ()) != type;
+        return world.setBlockId(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(), (short)type, WorldEditPlugin.getInstance());
     }
 
     /**
@@ -95,9 +94,7 @@ public class SpoutWorld extends LocalWorld {
      */
     @Override
     public boolean setTypeIdAndData(Vector pt, int type, int data) {
-        int origType = getBlockType(pt), origData = getBlockData(pt);
-        world.setBlockIdAndData(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(), (short) type, (short) data);
-        return origType != type && origData != data;
+        return world.setBlockIdAndData(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(), (short) type, (short) data, WorldEditPlugin.getInstance());
     }
 
     /**

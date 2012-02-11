@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010, 2011 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010, 2011 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,7 +72,11 @@ public class YAMLProcessor extends YAMLNode {
     protected String header = null;
     protected YAMLFormat format;
 
-    // Map from property key to comment. Comment may have multiple lines that are newline-separated.
+    /* 
+     * Map from property key to comment. Comment may have multiple lines that are newline-separated.
+     * Comments support based on ZerothAngel's AnnotatedYAMLConfiguration
+     * Comments are only supported with YAMLFormat.EXTENDED
+     */
     private final Map<String, String> comments = new HashMap<String, String>();
 
     public YAMLProcessor(File file, boolean writeDefaults, YAMLFormat format) {
@@ -180,20 +184,24 @@ public class YAMLProcessor extends YAMLNode {
                 writer.append(header);
                 writer.append(LINE_BREAK);
             }
-            // Iterate over each root-level property and dump
-            for (Iterator<Map.Entry<String, Object>> i = root.entrySet().iterator(); i.hasNext();) {
-                Map.Entry<String, Object> entry = i.next();
+            if (comments.size() == 0 || format != YAMLFormat.EXTENDED) {
+                yaml.dump(root, writer);
+            } else {
+                // Iterate over each root-level property and dump
+                for (Iterator<Map.Entry<String, Object>> i = root.entrySet().iterator(); i.hasNext(); ) {
+                    Map.Entry<String, Object> entry = i.next();
 
-                // Output comment, if present
-                String comment = comments.get(entry.getKey());
-                if (comment != null) {
-                    writer.append(LINE_BREAK);
-                    writer.append(comment);
-                    writer.append(LINE_BREAK);
+                    // Output comment, if present
+                    String comment = comments.get(entry.getKey());
+                    if (comment != null) {
+                        writer.append(LINE_BREAK);
+                        writer.append(comment);
+                        writer.append(LINE_BREAK);
+                    }
+
+                    // Dump property
+                    yaml.dump(Collections.singletonMap(entry.getKey(), entry.getValue()), writer);
                 }
-
-                // Dump property
-                yaml.dump(Collections.singletonMap(entry.getKey(), entry.getValue()), writer);
             }
             return true;
         } catch (IOException e) {

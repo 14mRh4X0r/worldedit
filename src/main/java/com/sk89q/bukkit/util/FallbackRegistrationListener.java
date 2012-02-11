@@ -1,6 +1,7 @@
+// $Id$
 /*
  * WorldEdit
- * Copyright (C) 2011 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2011 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +35,7 @@ public class FallbackRegistrationListener implements Listener {
         this.commandRegistration = commandRegistration;
     }
 
-    @EventHandler(event = PlayerCommandPreprocessEvent.class)
+    @EventHandler
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         if (event.isCancelled()) {
             return;

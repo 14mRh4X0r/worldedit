@@ -1,6 +1,6 @@
 /*
  * WorldEdit
- * Copyright (C) 2012 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2012 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 
 package com.sk89q.worldedit.spout;
 
-import org.spout.api.command.CommandException;
 import org.spout.api.command.CommandSource;
 import org.spout.api.command.RawCommandExecutor;
+import org.spout.api.exception.CommandException;
 import org.spout.api.util.MiscCompatibilityUtils;
 
 /**

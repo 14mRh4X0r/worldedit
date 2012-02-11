@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,6 +86,8 @@ public class PermissionsResolverManager implements PermissionsResolver {
     protected Class<? extends PermissionsResolver>[] availableResolvers = new Class[] {
             PluginPermissionsResolver.class,
             PermissionsExResolver.class,
+            bPermissionsResolver.class,
+            NijiPermissionsResolver.class,
             DinnerPermsResolver.class,
             FlatFilePermissionsResolver.class
     };
@@ -132,7 +134,6 @@ public class PermissionsResolverManager implements PermissionsResolver {
 
     public void load() {
         findResolver();
-        permissionResolver.load();
     }
 
     public boolean hasPermission(String name, String permission) {
@@ -261,23 +262,25 @@ public class PermissionsResolverManager implements PermissionsResolver {
     }
 
     class ServerListener implements org.bukkit.event.Listener {
-        @EventHandler(event = PluginEnableEvent.class)
+        @EventHandler
         public void onPluginEnable(PluginEnableEvent event) {
             Plugin plugin = event.getPlugin();
             String name = plugin.getDescription().getName();
             if (plugin instanceof PermissionsProvider) {
                 setPluginPermissionsResolver(plugin);
-            } else if ("Permissions".equals(name) || "PermissionsEx".equals(name)) {
+            } else if ("Permissions".equals(name) || "PermissionsEx".equals(name)
+                    || "bPermissions".equals(name)) {
                 load();
             }
         }
 
-        @EventHandler(event = PluginDisableEvent.class)
+        @EventHandler
         public void onPluginDisable(PluginDisableEvent event) {
             String name = event.getPlugin().getDescription().getName();
 
             if (event.getPlugin() instanceof PermissionsProvider 
-                    || "Permissions".equals(name) || "PermissionsEx".equals(name)) {
+                    || "Permissions".equals(name) || "PermissionsEx".equals(name)
+                    || "bPermissions".equals(name)) {
                 load();
             }
         }

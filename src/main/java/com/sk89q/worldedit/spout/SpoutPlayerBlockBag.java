@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 package com.sk89q.worldedit.spout;
 
-import com.sk89q.worldedit.Vector;
+import com.sk89q.worldedit.WorldVector;
 import com.sk89q.worldedit.bags.BlockBag;
 import com.sk89q.worldedit.bags.BlockBagException;
 import com.sk89q.worldedit.bags.OutOfBlocksException;
@@ -222,7 +222,7 @@ public class SpoutPlayerBlockBag extends BlockBag {
      * @param pos
      */
     @Override
-    public void addSourcePosition(Vector pos) {
+    public void addSourcePosition(WorldVector pos) {
     }
 
     /**
@@ -231,6 +231,6 @@ public class SpoutPlayerBlockBag extends BlockBag {
      * @param pos
      */
     @Override
-    public void addSingleSourcePosition(Vector pos) {
+    public void addSingleSourcePosition(WorldVector pos) {
     }
 }

@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ package com.sk89q.worldedit.bukkit;
 import java.util.HashMap;
 import java.util.Map;
 
-import gnu.trove.procedure.TIntIntProcedure;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Furnace;
@@ -684,20 +683,13 @@ public class BukkitWorld extends LocalWorld {
             }
 
             if (contents[i] != null) {
-                final ItemStack toAdd = new ItemStack(contents[i].getType(),
+                ItemStack toAdd = new ItemStack(contents[i].getType(),
                         contents[i].getAmount(),
                         contents[i].getDamage());
                 try {
-                    contents[i].getEnchantments().forEachEntry(new TIntIntProcedure() {
-                        @Override
-                        public boolean execute(int key, int value) {
-                            Enchantment ench = Enchantment.getById(key);
-                            if (ench != null) {
-                                toAdd.addEnchantment(ench, value);
-                            }
-                            return true;
-                        }
-                    });
+                    for (Map.Entry<Integer, Integer> entry : contents[i].getEnchantments().entrySet()) {
+                        toAdd.addEnchantment(Enchantment.getById(entry.getKey()), entry.getValue());
+                    }
                 } catch (Throwable ignore) {}
                 inven.setItem(i, toAdd);
             } else {

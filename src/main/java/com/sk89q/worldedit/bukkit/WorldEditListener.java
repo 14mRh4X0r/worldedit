@@ -1,4 +1,3 @@
-// $Id$
 /*
  * WorldEdit
  * Copyright (C) 2012 sk89q <http://www.sk89q.com>
@@ -16,6 +15,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+// $Id$
+
 package com.sk89q.worldedit.bukkit;
 
 import com.sk89q.util.StringUtil;
@@ -45,7 +47,7 @@ public class WorldEditListener implements Listener {
     
     private WorldEditPlugin plugin;
     private boolean ignoreLeftClickAir = false;
-    private final static Pattern cuipattern = Pattern.compile("u00a74u00a75u00a73u00a74([^|]*)\\|?(.*)");
+    private final static Pattern cuipattern = Pattern.compile("u00a74u00a75u00a73u00a74([^\\|]*)\\|?(.*)");
 
     /**
      * Called when a player plays an animation, such as an arm swing
@@ -62,7 +64,7 @@ public class WorldEditListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(event = PlayerJoinEvent.class, priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         plugin.wrapPlayer(event.getPlayer()).dispatchCUIHandshake();
     }
@@ -72,7 +74,7 @@ public class WorldEditListener implements Listener {
      *
      * @param event Relevant event details
      */
-    @EventHandler(event = PlayerQuitEvent.class)
+    @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         plugin.getWorldEdit().markExpire(plugin.wrapPlayer(event.getPlayer()));
     }
@@ -82,7 +84,7 @@ public class WorldEditListener implements Listener {
      *
      * @param event Relevant event details
      */
-    @EventHandler(event = PlayerCommandPreprocessEvent.class, priority = EventPriority.LOW)
+    @EventHandler(priority = EventPriority.LOW)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         if (event.isCancelled()) {
             return;
@@ -103,7 +105,7 @@ public class WorldEditListener implements Listener {
      *
      * @param event Relevant event details
      */
-    @EventHandler(event = PlayerInteractEvent.class)
+    @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.useItemInHand() == Result.DENY) {
             return;
@@ -167,7 +169,7 @@ public class WorldEditListener implements Listener {
         }
     }
 
-    @EventHandler(event = PlayerChatEvent.class)
+    @EventHandler
     public void onPlayerChat(PlayerChatEvent event) {
         if (event.isCancelled()) {
             return;

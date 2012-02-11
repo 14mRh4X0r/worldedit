@@ -1,7 +1,7 @@
 // $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com>
+ * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -326,6 +326,17 @@ public abstract class LocalWorld {
      */
     public boolean isValidBlockType(int type) {
         return BlockType.fromID(type) != null;
+    }
+    
+    /**
+     * Returns whether a block uses its data value.
+     * 
+     * @param type block ID type
+     * @return true if the block uses data value
+     */
+    public boolean usesBlockData(int type) {
+        // We future proof here by assuming all unknown blocks use data
+        return BlockType.usesData(type) || BlockType.fromID(type) == null;
     }
 
     /**
