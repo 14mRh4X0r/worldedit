@@ -17,8 +17,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-import com.sk89q.worldedit.Vector;
-import com.sk89q.worldedit.bags.*;
+import com.sk89q.worldedit.WorldVector;
+import com.sk89q.worldedit.bags.BlockBag;
+import com.sk89q.worldedit.bags.BlockBagException;
+import com.sk89q.worldedit.bags.OutOfBlocksException;
+import com.sk89q.worldedit.bags.OutOfSpaceException;
 
 public class HMPlayerInventoryBlockBag extends BlockBag {
     /**
@@ -173,14 +176,14 @@ public class HMPlayerInventoryBlockBag extends BlockBag {
      *
      * @param pos
      */
-    public void addSourcePosition(Vector pos) {
+    public void addSourcePosition(WorldVector pos) {
     }
     /**
      * Adds a position to be used a source.
      *
      * @param pos
      */
-    public void addSingleSourcePosition(Vector pos) {
+    public void addSingleSourcePosition(WorldVector pos) {
     }
     
     /**
