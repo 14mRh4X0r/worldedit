@@ -43,7 +43,7 @@ public class WorldEdit extends Plugin {
     /**
      * WorldEdit version, fetched from the .jar's manifest.
      */
-    private String version;
+    private String version = "1.5.2";
 
     /**
      * Construct an instance of the plugin.
