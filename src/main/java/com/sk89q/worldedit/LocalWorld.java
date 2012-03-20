@@ -370,7 +370,7 @@ public abstract class LocalWorld {
      * @return
      */
     public int getMaxY() {
-        return 127;
+        return 255;
     }
 
     /**
