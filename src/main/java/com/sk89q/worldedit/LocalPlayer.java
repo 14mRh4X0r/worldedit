@@ -77,7 +77,7 @@ public abstract class LocalPlayer {
 
         byte free = 0;
 
-        while (y <= 129) {
+        while (y <= 257) {
             if (BlockType.canPassThrough(world.getBlockType(new Vector(x, y, z)))) {
                 ++free;
             } else {
