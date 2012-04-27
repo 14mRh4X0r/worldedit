@@ -25,6 +25,7 @@ import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.LogFormat;
 import com.sk89q.worldedit.snapshots.SnapshotRepository;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.logging.FileHandler;
@@ -58,11 +59,16 @@ public class YAMLConfiguration extends LocalConfiguration {
         showFirstUseVersion = false;
 
         profile = config.getBoolean("debug", profile);
+        enableWECUI = config.getBoolean("enable-wecui-handshake", enableWECUI);
         wandItem = config.getInt("wand-item", wandItem);
         defaultChangeLimit = Math.max(-1, config.getInt(
                 "limits.max-blocks-changed.default", defaultChangeLimit));
         maxChangeLimit = Math.max(-1,
                 config.getInt("limits.max-blocks-changed.maximum", maxChangeLimit));
+        defaultMaxPolygonalPoints = Math.max(-1,
+                config.getInt("limits.max-polygonal-points.default", defaultMaxPolygonalPoints));
+        maxPolygonalPoints = Math.max(-1,
+                config.getInt("limits.max-polygonal-points.maximum", maxPolygonalPoints));
         maxRadius = Math.max(-1, config.getInt("limits.max-radius", maxRadius));
         maxSuperPickaxeSize = Math.max(1, config.getInt(
                 "limits.max-super-pickaxe-size", maxSuperPickaxeSize));
@@ -83,6 +89,7 @@ public class YAMLConfiguration extends LocalConfiguration {
 
         scriptTimeout = config.getInt("scripting.timeout", scriptTimeout);
         scriptsDir = config.getString("scripting.dir", scriptsDir);
+        butcherDefaultRadius = config.getInt("butcher-default-radius", butcherDefaultRadius);
 
         saveDir = config.getString("saving.dir", saveDir);
 
@@ -104,7 +111,8 @@ public class YAMLConfiguration extends LocalConfiguration {
         String logFile = config.getString("logging.file", "");
         if (!logFile.equals("")) {
             try {
-                logFileHandler = new FileHandler(logFile, true);
+                logFileHandler = new FileHandler(new File(getWorkingDirectory(),
+                        logFile).getAbsolutePath(), true);
                 logFileHandler.setFormatter(new LogFormat());
                 logger.addHandler(logFileHandler);
             } catch (IOException e) {

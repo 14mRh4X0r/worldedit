@@ -20,6 +20,7 @@
 package com.sk89q.worldedit.regions;
 
 import com.sk89q.worldedit.BlockVector;
+import com.sk89q.worldedit.BlockVector2D;
 import com.sk89q.worldedit.LocalWorld;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.Vector2D;
@@ -32,7 +33,7 @@ import java.util.HashSet;
  *
  * @author sk89q
  */
-public class CuboidRegion extends AbstractRegion {
+public class CuboidRegion extends AbstractRegion implements FlatRegion {
     /**
      * Store the first point.
      */
@@ -50,10 +51,10 @@ public class CuboidRegion extends AbstractRegion {
     public CuboidRegion(Vector pos1, Vector pos2) {
         this(null, pos1, pos2);
     }
-    
+
     /**
      * Construct a new instance of this cuboid region.
-     * 
+     *
      * @param world
      * @param pos1
      * @param pos2
@@ -84,6 +85,14 @@ public class CuboidRegion extends AbstractRegion {
         return new Vector(Math.max(pos1.getX(), pos2.getX()),
                          Math.max(pos1.getY(), pos2.getY()),
                          Math.max(pos1.getZ(), pos2.getZ()));
+    }
+
+    public int getMinimumY() {
+        return Math.min(pos1.getBlockY(), pos2.getBlockY());
+    }
+
+    public int getMaximumY() {
+        return Math.max(pos1.getBlockY(), pos2.getBlockY());
     }
 
     /**
@@ -141,46 +150,48 @@ public class CuboidRegion extends AbstractRegion {
      *
      * @param change
      */
-    public void expand(Vector change) {
-        if (change.getX() > 0) {
-            if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
-                pos1 = pos1.add(new Vector(change.getX(), 0, 0));
+    public void expand(Vector... changes) {
+        for (Vector change : changes) {
+            if (change.getX() > 0) {
+                if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
+                    pos1 = pos1.add(new Vector(change.getX(), 0, 0));
+                } else {
+                    pos2 = pos2.add(new Vector(change.getX(), 0, 0));
+                }
             } else {
-                pos2 = pos2.add(new Vector(change.getX(), 0, 0));
+                if (Math.min(pos1.getX(), pos2.getX()) == pos1.getX()) {
+                    pos1 = pos1.add(new Vector(change.getX(), 0, 0));
+                } else {
+                    pos2 = pos2.add(new Vector(change.getX(), 0, 0));
+                }
             }
-        } else {
-            if (Math.min(pos1.getX(), pos2.getX()) == pos1.getX()) {
-                pos1 = pos1.add(new Vector(change.getX(), 0, 0));
-            } else {
-                pos2 = pos2.add(new Vector(change.getX(), 0, 0));
-            }
-        }
 
-        if (change.getY() > 0) {
-            if (Math.max(pos1.getY(), pos2.getY()) == pos1.getY()) {
-                pos1 = pos1.add(new Vector(0, change.getY(), 0));
+            if (change.getY() > 0) {
+                if (Math.max(pos1.getY(), pos2.getY()) == pos1.getY()) {
+                    pos1 = pos1.add(new Vector(0, change.getY(), 0));
+                } else {
+                    pos2 = pos2.add(new Vector(0, change.getY(), 0));
+                }
             } else {
-                pos2 = pos2.add(new Vector(0, change.getY(), 0));
+                if (Math.min(pos1.getY(), pos2.getY()) == pos1.getY()) {
+                    pos1 = pos1.add(new Vector(0, change.getY(), 0));
+                } else {
+                    pos2 = pos2.add(new Vector(0, change.getY(), 0));
+                }
             }
-        } else {
-            if (Math.min(pos1.getY(), pos2.getY()) == pos1.getY()) {
-                pos1 = pos1.add(new Vector(0, change.getY(), 0));
-            } else {
-                pos2 = pos2.add(new Vector(0, change.getY(), 0));
-            }
-        }
 
-        if (change.getZ() > 0) {
-            if (Math.max(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
-                pos1 = pos1.add(new Vector(0, 0, change.getZ()));
+            if (change.getZ() > 0) {
+                if (Math.max(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
+                    pos1 = pos1.add(new Vector(0, 0, change.getZ()));
+                } else {
+                    pos2 = pos2.add(new Vector(0, 0, change.getZ()));
+                }
             } else {
-                pos2 = pos2.add(new Vector(0, 0, change.getZ()));
-            }
-        } else {
-            if (Math.min(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
-                pos1 = pos1.add(new Vector(0, 0, change.getZ()));
-            } else {
-                pos2 = pos2.add(new Vector(0, 0, change.getZ()));
+                if (Math.min(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
+                    pos1 = pos1.add(new Vector(0, 0, change.getZ()));
+                } else {
+                    pos2 = pos2.add(new Vector(0, 0, change.getZ()));
+                }
             }
         }
 
@@ -192,46 +203,48 @@ public class CuboidRegion extends AbstractRegion {
      *
      * @param change
      */
-    public void contract(Vector change) {
-        if (change.getX() < 0) {
-            if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
-                pos1 = pos1.add(new Vector(change.getX(), 0, 0));
+    public void contract(Vector... changes) {
+        for (Vector change : changes) {
+            if (change.getX() < 0) {
+                if (Math.max(pos1.getX(), pos2.getX()) == pos1.getX()) {
+                    pos1 = pos1.add(new Vector(change.getX(), 0, 0));
+                } else {
+                    pos2 = pos2.add(new Vector(change.getX(), 0, 0));
+                }
             } else {
-                pos2 = pos2.add(new Vector(change.getX(), 0, 0));
+                if (Math.min(pos1.getX(), pos2.getX()) == pos1.getX()) {
+                    pos1 = pos1.add(new Vector(change.getX(), 0, 0));
+                } else {
+                    pos2 = pos2.add(new Vector(change.getX(), 0, 0));
+                }
             }
-        } else {
-            if (Math.min(pos1.getX(), pos2.getX()) == pos1.getX()) {
-                pos1 = pos1.add(new Vector(change.getX(), 0, 0));
-            } else {
-                pos2 = pos2.add(new Vector(change.getX(), 0, 0));
-            }
-        }
 
-        if (change.getY() < 0) {
-            if (Math.max(pos1.getY(), pos2.getY()) == pos1.getY()) {
-                pos1 = pos1.add(new Vector(0, change.getY(), 0));
+            if (change.getY() < 0) {
+                if (Math.max(pos1.getY(), pos2.getY()) == pos1.getY()) {
+                    pos1 = pos1.add(new Vector(0, change.getY(), 0));
+                } else {
+                    pos2 = pos2.add(new Vector(0, change.getY(), 0));
+                }
             } else {
-                pos2 = pos2.add(new Vector(0, change.getY(), 0));
+                if (Math.min(pos1.getY(), pos2.getY()) == pos1.getY()) {
+                    pos1 = pos1.add(new Vector(0, change.getY(), 0));
+                } else {
+                    pos2 = pos2.add(new Vector(0, change.getY(), 0));
+                }
             }
-        } else {
-            if (Math.min(pos1.getY(), pos2.getY()) == pos1.getY()) {
-                pos1 = pos1.add(new Vector(0, change.getY(), 0));
-            } else {
-                pos2 = pos2.add(new Vector(0, change.getY(), 0));
-            }
-        }
 
-        if (change.getZ() < 0) {
-            if (Math.max(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
-                pos1 = pos1.add(new Vector(0, 0, change.getZ()));
+            if (change.getZ() < 0) {
+                if (Math.max(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
+                    pos1 = pos1.add(new Vector(0, 0, change.getZ()));
+                } else {
+                    pos2 = pos2.add(new Vector(0, 0, change.getZ()));
+                }
             } else {
-                pos2 = pos2.add(new Vector(0, 0, change.getZ()));
-            }
-        } else {
-            if (Math.min(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
-                pos1 = pos1.add(new Vector(0, 0, change.getZ()));
-            } else {
-                pos2 = pos2.add(new Vector(0, 0, change.getZ()));
+                if (Math.min(pos1.getZ(), pos2.getZ()) == pos1.getZ()) {
+                    pos1 = pos1.add(new Vector(0, 0, change.getZ()));
+                } else {
+                    pos2 = pos2.add(new Vector(0, 0, change.getZ()));
+                }
             }
         }
 
@@ -239,8 +252,8 @@ public class CuboidRegion extends AbstractRegion {
     }
 
     private void recalculate() {
-        pos1 = pos1.clampY(0, world == null ? 127 : world.getMaxY());
-        pos2 = pos2.clampY(0, world == null ? 127 : world.getMaxY());
+        pos1 = pos1.clampY(0, world == null ? 255 : world.getMaxY());
+        pos2 = pos2.clampY(0, world == null ? 255 : world.getMaxY());
     }
 
     @Override
@@ -299,10 +312,26 @@ public class CuboidRegion extends AbstractRegion {
         Vector max = getMaximumPoint();
 
         for (int x = min.getBlockX(); x <= max.getBlockX(); ++x) {
+            for (int z = min.getBlockZ(); z <= max.getBlockZ(); ++z) {
+                chunks.add(new BlockVector2D(x >> ChunkStore.CHUNK_SHIFTS,
+                        z >> ChunkStore.CHUNK_SHIFTS));
+            }
+        }
+
+        return chunks;
+    }
+
+    public Set<Vector> getChunkCubes() {
+        Set<Vector> chunks = new HashSet<Vector>();
+
+        Vector min = getMinimumPoint();
+        Vector max = getMaximumPoint();
+
+        for (int x = min.getBlockX(); x <= max.getBlockX(); ++x) {
             for (int y = min.getBlockY(); y <= max.getBlockY(); ++y) {
                 for (int z = min.getBlockZ(); z <= max.getBlockZ(); ++z) {
-                    Vector pt = new Vector(x, y, z);
-                    chunks.add(ChunkStore.toChunk(pt));
+                    chunks.add(new BlockVector(x >> ChunkStore.CHUNK_SHIFTS,
+                            y >> ChunkStore.CHUNK_SHIFTS, z >> ChunkStore.CHUNK_SHIFTS));
                 }
             }
         }
@@ -367,6 +396,42 @@ public class CuboidRegion extends AbstractRegion {
         };
     }
 
+    @Override
+    public Iterable<Vector2D> asFlatRegion() {
+        return new Iterable<Vector2D>() {
+            @Override
+            public Iterator<Vector2D> iterator() {
+                return new Iterator<Vector2D>() {
+                    private Vector min = getMinimumPoint();
+                    private Vector max = getMaximumPoint();
+                    private int nextX = min.getBlockX();
+                    private int nextZ = min.getBlockZ();
+
+                    public boolean hasNext() {
+                        return (nextX != Integer.MIN_VALUE);
+                    }
+
+                    public Vector2D next() {
+                        if (!hasNext()) throw new java.util.NoSuchElementException();
+                        Vector2D answer = new Vector2D(nextX, nextZ);
+                        if (++nextX > max.getBlockX()) {
+                            nextX = min.getBlockX();
+                            if (++nextZ > max.getBlockZ()) {
+                                nextX = Integer.MIN_VALUE;
+                            }
+                        }
+                        return answer;
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+        };
+    }
+
     /**
      * Returns string representation in the format
      * "(minX, minY, minZ) - (maxX, maxY, maxZ)".
@@ -376,5 +441,9 @@ public class CuboidRegion extends AbstractRegion {
     @Override
     public String toString() {
         return getMinimumPoint() + " - " + getMaximumPoint();
+    }
+
+    public CuboidRegion clone() {
+        return (CuboidRegion) super.clone();
     }
 }

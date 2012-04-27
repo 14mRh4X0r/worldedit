@@ -1,7 +1,6 @@
-// $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
+ * Copyright (C) 2012 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +14,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
+
+// $Id$
+
 
 package com.sk89q.worldedit.spout;
 
@@ -34,6 +36,8 @@ import org.spout.api.event.player.PlayerInteractEvent.Action;
 import org.spout.api.event.player.PlayerJoinEvent;
 import org.spout.api.event.player.PlayerLeaveEvent;
 import org.spout.api.event.server.PreCommandEvent;
+import org.spout.api.event.world.WorldLoadEvent;
+import org.spout.api.generator.biome.BiomeGenerator;
 import org.spout.api.geo.discrete.Point;
 
 import java.util.regex.Matcher;
@@ -42,7 +46,7 @@ import java.util.regex.Pattern;
 /**
  * Handles all events thrown in relation to a Player
  */
-public class WorldEditPlayerListener implements Listener {
+public class WorldEditListener implements Listener {
     /**
      * Plugin.
      */
@@ -54,10 +58,10 @@ public class WorldEditPlayerListener implements Listener {
 
     /**
      * Construct the object;
-     * 
+     *
      * @param plugin
      */
-    public WorldEditPlayerListener(WorldEditPlugin plugin) {
+    public WorldEditListener(WorldEditPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -81,8 +85,13 @@ public class WorldEditPlayerListener implements Listener {
      *
      * @param event Relevant event details
      */
-    //@EventHandler(order = Order.EARLY)
+    @EventHandler(order = Order.EARLY)
     public void onPlayerCommandPreprocess(PreCommandEvent event) {
+
+        if (event.getMessage().startsWith("nowe:")) {
+            event.setMessage(event.getMessage().substring(5));
+            return;
+        }
 
         String[] split = event.getMessage().split(" ");
 
@@ -127,7 +136,7 @@ public class WorldEditPlayerListener implements Listener {
             }
 
             if (!event.isAir() && !ignoreLeftClickAir) {
-                final int taskId = Spout.getGame().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+                final int taskId = Spout.getEngine().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
                     public void run() {
                         ignoreLeftClickAir = false;
                     }
@@ -173,6 +182,13 @@ public class WorldEditPlayerListener implements Listener {
                 }
             }
 
+        }
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        if (event.getWorld().getGenerator() instanceof BiomeGenerator) {
+            plugin.getServerInterface().getBiomes().registerBiomeTypes((BiomeGenerator) event.getWorld().getGenerator());
         }
     }
 }

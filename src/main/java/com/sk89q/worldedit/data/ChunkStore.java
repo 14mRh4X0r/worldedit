@@ -20,6 +20,8 @@
 package com.sk89q.worldedit.data;
 
 import java.io.IOException;
+import java.util.Map;
+
 import com.sk89q.jnbt.*;
 import com.sk89q.worldedit.*;
 
@@ -29,6 +31,11 @@ import com.sk89q.worldedit.*;
  * @author sk89q
  */
 public abstract class ChunkStore {
+    /**
+     * >> to chunk
+     * << from chunk
+     */
+    public static final int CHUNK_SHIFTS = 4;
     /**
      * Convert a position to a chunk.
      *
@@ -64,7 +71,13 @@ public abstract class ChunkStore {
      */
     public Chunk getChunk(Vector2D pos, LocalWorld world)
             throws DataException, IOException {
-        return new Chunk(world, getChunkTag(pos, world));
+
+        CompoundTag tag = getChunkTag(pos, world);
+        Map<String, Tag> tags = tag.getValue();
+        if(tags.containsKey("Sections")) {
+            return new AnvilChunk(world, tag);
+        }
+        return new OldChunk(world, tag);
     }
 
     /**

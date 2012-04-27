@@ -72,17 +72,17 @@ public class WorldEdit {
     /**
      * Interface to the server.
      */
-    private ServerInterface server;
+    private final ServerInterface server;
 
     /**
      * Configuration. This is a subclass.
      */
-    private LocalConfiguration config;
+    private final LocalConfiguration config;
 
     /**
      * List of commands.
      */
-    private CommandsManager<LocalPlayer> commands;
+    private final CommandsManager<LocalPlayer> commands;
 
     /**
      * Stores a list of WorldEdit sessions, keyed by players' names. Sessions
@@ -91,7 +91,7 @@ public class WorldEdit {
      * without any WorldEdit abilities or never use WorldEdit in a session will
      * not have a session object generated for them.
      */
-    private HashMap<String, LocalSession> sessions = new HashMap<String, LocalSession>();
+    private final HashMap<String, LocalSession> sessions = new HashMap<String, LocalSession>();
 
     /**
      * Initialize statically.
@@ -102,7 +102,7 @@ public class WorldEdit {
 
     /**
      * Construct an instance of the plugin
-     * 
+     *
      * @param server
      * @param config
      */
@@ -182,22 +182,27 @@ public class WorldEdit {
                 super.invokeMethod(parent, args, player, method, instance, methodArgs, level);
             }
         };
-        
+
         commands.setInjector(new SimpleInjector(this));
 
-        server.onCommandRegistration(commands.registerAndReturn(ChunkCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(ClipboardCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(GeneralCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(GenerationCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(HistoryCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(NavigationCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(RegionCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(ScriptingCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(SelectionCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(SnapshotUtilCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(ToolUtilCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(ToolCommands.class));
-        server.onCommandRegistration(commands.registerAndReturn(UtilityCommands.class));
+        reg(BiomeCommands.class);
+        reg(ChunkCommands.class);
+        reg(ClipboardCommands.class);
+        reg(GeneralCommands.class);
+        reg(GenerationCommands.class);
+        reg(HistoryCommands.class);
+        reg(NavigationCommands.class);
+        reg(RegionCommands.class);
+        reg(ScriptingCommands.class);
+        reg(SelectionCommands.class);
+        reg(SnapshotUtilCommands.class);
+        reg(ToolUtilCommands.class);
+        reg(ToolCommands.class);
+        reg(UtilityCommands.class);
+    }
+
+    private void reg(Class<?> clazz) {
+        server.onCommandRegistration(commands.registerAndReturn(clazz), commands);
     }
 
     /**
@@ -250,8 +255,8 @@ public class WorldEdit {
             // Have the session use inventory if it's enabled and the player
             // doesn't have an override
             session.setUseInventory(config.useInventory
-                    && (!config.useInventoryOverride
-                            || !player.hasPermission("worldedit.inventory.unrestricted")));
+                    && !(config.useInventoryOverride
+                            && player.hasPermission("worldedit.inventory.unrestricted")));
 
             // Remember the session
             sessions.put(player.getName(), session);
@@ -262,7 +267,7 @@ public class WorldEdit {
 
     /**
      * Returns true if the player has a session.
-     * 
+     *
      * @param player
      * @return
      */
@@ -310,8 +315,9 @@ public class WorldEdit {
             blockType = BlockType.lookup(testID);
             if (blockType == null) {
                 int t = server.resolveItem(testID);
-                if (t > 0 && t < 256) {
-                    blockType = BlockType.fromID(t);
+                if (t > 0) {
+                    blockType = BlockType.fromID(t); // Could be null
+                    blockId = t;
                 }
             }
         }
@@ -340,7 +346,7 @@ public class WorldEdit {
         if (data == -1) { // Block data not yet detected
             // Parse the block data (optional)
             try {
-                data = typeAndData.length > 1 ? Integer.parseInt(typeAndData[1]) : (allowNoData ? -1 : 0);
+                data = (typeAndData.length > 1 && typeAndData[1].length() > 0) ? Integer.parseInt(typeAndData[1]) : (allowNoData ? -1 : 0);
                 if (data > 15 || (data < 0 && !(allAllowed && data == -1))) {
                     data = 0;
                 }
@@ -498,8 +504,8 @@ public class WorldEdit {
      * @param player
      * @param patternString
      * @return pattern
-     * @throws UnknownItemException 
-     * @throws DisallowedItemException 
+     * @throws UnknownItemException
+     * @throws DisallowedItemException
      */
     public Pattern getBlockPattern(LocalPlayer player, String patternString)
             throws UnknownItemException, DisallowedItemException {
@@ -589,12 +595,16 @@ public class WorldEdit {
         }
     }
 
-    private Mask getBlockMaskComponent(LocalPlayer player, LocalSession session, List<Mask> masks, String component) throws IncompleteRegionException, UnknownItemException, DisallowedItemException {
+    private Mask getBlockMaskComponent(LocalPlayer player, LocalSession session, List<Mask> masks, String component) throws WorldEditException {
         final char firstChar = component.charAt(0);
         switch (firstChar) {
         case '#':
             if (component.equalsIgnoreCase("#existing")) {
                 return new ExistingBlockMask();
+            } else if (component.equalsIgnoreCase("#dregion")
+                    || component.equalsIgnoreCase("#dselection")
+                    || component.equalsIgnoreCase("#dsel")) {
+                return new DynamicRegionMask();
             } else if (component.equalsIgnoreCase("#selection")
                     || component.equalsIgnoreCase("#region")
                     || component.equalsIgnoreCase("#sel")) {
@@ -605,35 +615,26 @@ public class WorldEdit {
 
         case '>':
         case '<':
-            final LocalWorld world = player.getWorld();
-            final boolean over = firstChar == '>';
-            final String idString = component.substring(1);
-            final Set<Integer> ids = new HashSet<Integer>();
-
-            if (!(idString.equals("*") || idString.equals(""))) {
-                for (String sid : idString.split(",")) {
-                    try {
-                        final int pid = Integer.parseInt(sid);
-                        if (!world.isValidBlockType(pid)) {
-                            throw new UnknownItemException(sid);
-                        }
-                        ids.add(pid);
-                    } catch (NumberFormatException e) {
-                        final BlockType type = BlockType.lookup(sid);
-                        final int id = type.getID();
-                        if (!world.isValidBlockType(id)) {
-                            throw new UnknownItemException(sid);
-                        }
-                        ids.add(id);
-                    }
-                }
+            Mask submask;
+            if (component.length() > 1) {
+                submask = getBlockMaskComponent(player, session, masks, component.substring(1));
+            } else {
+                submask = new ExistingBlockMask();
             }
+            return new UnderOverlayMask(submask, firstChar == '>'); 
 
-            return new UnderOverlayMask(ids, over);
+        case '$':
+            Set<BiomeType> biomes = new HashSet<BiomeType>();
+            String[] biomesList = component.substring(1).split(",");
+            for (String biomeName : biomesList) {
+                BiomeType biome = server.getBiomes().get(biomeName);
+                biomes.add(biome);
+            }
+            return new BiomeTypeMask(biomes);
 
         case '!':
             if (component.length() > 1) {
-                return new InvertedBlockTypeMask(getBlockIDs(player, component.substring(1), true));
+                return new InvertedMask(getBlockMaskComponent(player, session, masks, component.substring(1)));
             }
 
         default:
@@ -648,8 +649,8 @@ public class WorldEdit {
      * @param list
      * @param allBlocksAllowed
      * @return set
-     * @throws UnknownItemException 
-     * @throws DisallowedItemException 
+     * @throws UnknownItemException
+     * @throws DisallowedItemException
      */
     public Set<Integer> getBlockIDs(LocalPlayer player,
             String list, boolean allBlocksAllowed)
@@ -668,8 +669,8 @@ public class WorldEdit {
      * has valid characters and has an extension. It also prevents directory
      * traversal exploits by checking the root directory and the file directory.
      * On success, a <code>java.io.File</code> object will be returned.
-     * 
-     * @param player 
+     *
+     * @param player
      * @param dir sub-directory to look in
      * @param filename filename (user-submitted)
      * @param defaultExt append an extension if missing one, null to not use
@@ -688,8 +689,8 @@ public class WorldEdit {
      * has valid characters and has an extension. It also prevents directory
      * traversal exploits by checking the root directory and the file directory.
      * On success, a <code>java.io.File</code> object will be returned.
-     * 
-     * @param player 
+     *
+     * @param player
      * @param dir sub-directory to look in
      * @param filename filename (user-submitted)
      * @param defaultExt append an extension if missing one, null to not use
@@ -705,7 +706,7 @@ public class WorldEdit {
 
     /**
      * Get a safe path to a file.
-     * 
+     *
      * @param player
      * @param dir
      * @param filename
@@ -760,6 +761,18 @@ public class WorldEdit {
         }
     }
 
+    public int getMaximumPolygonalPoints(LocalPlayer player) {
+        if (player.hasPermission("worldedit.limit.unrestricted") || config.maxPolygonalPoints < 0) {
+            return config.defaultMaxPolygonalPoints;
+        } else {
+            if (config.defaultMaxPolygonalPoints < 0) {
+                return config.maxPolygonalPoints;
+            }
+            return Math.min(config.defaultMaxPolygonalPoints,
+                    config.maxPolygonalPoints);
+        }
+    }
+
     /**
      * Checks to see if the specified radius is within bounds.
      *
@@ -775,7 +788,7 @@ public class WorldEdit {
     /**
      * Get a file relative to the defined working directory. If the specified
      * path is absolute, then the working directory is not used.
-     * 
+     *
      * @param path
      * @return
      */
@@ -790,7 +803,7 @@ public class WorldEdit {
 
     /**
      * Modulus, divisor-style.
-     * 
+     *
      * @param a
      * @param n
      * @return
@@ -802,11 +815,11 @@ public class WorldEdit {
     /**
      * Get the direction vector for a player's direction. May return
      * null if a direction could not be found.
-     * 
+     *
      * @param player
-     * @param dirStr 
+     * @param dirStr
      * @return
-     * @throws UnknownDirectionException 
+     * @throws UnknownDirectionException
      */
     public Vector getDirection(LocalPlayer player, String dirStr)
             throws UnknownDirectionException {
@@ -897,11 +910,11 @@ public class WorldEdit {
     /**
      * Get diagonal direction vector for a player's direction. May return
      * null if a direction could not be found.
-     * 
+     *
      * @param player
-     * @param dirStr 
+     * @param dirStr
      * @return
-     * @throws UnknownDirectionException 
+     * @throws UnknownDirectionException
      */
     public Vector getDiagonalDirection(LocalPlayer player, String dirStr)
             throws UnknownDirectionException {
@@ -913,9 +926,9 @@ public class WorldEdit {
      * Get the flip direction for a player's direction.
      *
      * @param player
-     * @param dirStr 
+     * @param dirStr
      * @return
-     * @throws UnknownDirectionException 
+     * @throws UnknownDirectionException
      */
     public FlipDirection getFlipDirection(LocalPlayer player, String dirStr)
             throws UnknownDirectionException {
@@ -941,7 +954,7 @@ public class WorldEdit {
 
     /**
      * Remove a session.
-     * 
+     *
      * @param player
      */
     public void removeSession(LocalPlayer player) {
@@ -961,7 +974,7 @@ public class WorldEdit {
 
     /**
      * Flush a block bag's changes to a player.
-     * 
+     *
      * @param player
      * @param editSession
      */
@@ -1064,9 +1077,9 @@ public class WorldEdit {
 
     /**
      * Called on arm swing.
-     * 
+     *
      * @param player
-     * @return 
+     * @return
      */
     public boolean handleArmSwing(LocalPlayer player) {
         if (player.getItemInHand() == config.navigationWand) {
@@ -1103,9 +1116,9 @@ public class WorldEdit {
 
     /**
      * Called on right click (not on a block).
-     * 
+     *
      * @param player
-     * @return 
+     * @return
      */
     public boolean handleRightClick(LocalPlayer player) {
         if (player.getItemInHand() == config.navigationWand) {
@@ -1327,7 +1340,7 @@ public class WorldEdit {
 
         return true;
     }
-    
+
     public String[] commandDetection(String[] split) {
         split[0] = split[0].substring(1);
 
@@ -1355,11 +1368,11 @@ public class WorldEdit {
 
     /**
      * Executes a WorldEdit script.
-     * 
+     *
      * @param player
      * @param f
      * @param args
-     * @throws WorldEditException 
+     * @throws WorldEditException
      */
     public void runScript(LocalPlayer player, File f, String[] args)
             throws WorldEditException {
@@ -1444,7 +1457,7 @@ public class WorldEdit {
 
     /**
      * Get Worldedit's configuration.
-     * 
+     *
      * @return
      */
     public LocalConfiguration getConfiguration() {
@@ -1453,7 +1466,7 @@ public class WorldEdit {
 
     /**
      * Get the server interface.
-     * 
+     *
      * @return
      */
     public ServerInterface getServer() {

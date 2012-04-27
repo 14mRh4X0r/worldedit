@@ -1,7 +1,6 @@
-// $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010, 2011 sk89q <http://www.sk89q.com> and contributors
+ * Copyright (C) 2012 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,13 +14,16 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
+
+// $Id$
+
 
 package com.sk89q.worldedit.spout;
 
 import com.sk89q.worldedit.SessionCheck;
 import com.sk89q.worldedit.WorldEdit;
-import org.spout.api.Game;
+import org.spout.api.Engine;
 import org.spout.api.player.Player;
 
 /**
@@ -34,7 +36,7 @@ public class SessionTimer implements Runnable {
     private WorldEdit worldEdit;
     private SessionCheck checker;
 
-    public SessionTimer(WorldEdit worldEdit, final Game game) {
+    public SessionTimer(WorldEdit worldEdit, final Engine game) {
         this.worldEdit = worldEdit;
         this.checker = new SessionCheck() {
             public boolean isOnlinePlayer(String name) {

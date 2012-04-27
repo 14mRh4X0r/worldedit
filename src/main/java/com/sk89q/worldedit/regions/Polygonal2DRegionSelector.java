@@ -40,15 +40,25 @@ import com.sk89q.worldedit.cui.SelectionShapeEvent;
  * @author sk89q
  */
 public class Polygonal2DRegionSelector implements RegionSelector, CUIRegion {
+    private int maxPoints;
     private BlockVector pos1;
     private Polygonal2DRegion region;
 
     public Polygonal2DRegionSelector(LocalWorld world) {
+        this(world, 20);
+    }
+
+    public Polygonal2DRegionSelector(LocalWorld world, int maxPoints) {
+        this.maxPoints = maxPoints;
         region = new Polygonal2DRegion(world);
     }
 
     public Polygonal2DRegionSelector(RegionSelector oldSelector) {
-        this(oldSelector.getIncompleteRegion().getWorld());
+        this(oldSelector, 20);
+    }
+
+    public Polygonal2DRegionSelector(RegionSelector oldSelector, int maxPoints) {
+        this(oldSelector.getIncompleteRegion().getWorld(), maxPoints);
         if (oldSelector instanceof Polygonal2DRegionSelector) {
             final Polygonal2DRegionSelector polygonal2DRegionSelector = (Polygonal2DRegionSelector) oldSelector;
 
@@ -108,7 +118,7 @@ public class Polygonal2DRegionSelector implements RegionSelector, CUIRegion {
                 return false;
             }
 
-            if (points.size() >= 20) {
+            if (maxPoints > -1 && points.size() >= maxPoints) {
                 return false;
             }
         }
@@ -124,18 +134,19 @@ public class Polygonal2DRegionSelector implements RegionSelector, CUIRegion {
 
         session.dispatchCUIEvent(player, new SelectionShapeEvent(getTypeID()));
         session.dispatchCUIEvent(player, new SelectionPoint2DEvent(0, pos, getArea()));
-        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMininumY(), region.getMaximumY()));
+        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMinimumY(), region.getMaximumY()));
     }
 
     public void explainSecondarySelection(LocalPlayer player, LocalSession session, Vector pos) {
         player.print("Added point #" + region.size() + " at " + pos + ".");
 
         session.dispatchCUIEvent(player, new SelectionPoint2DEvent(region.size() - 1, pos, getArea()));
-        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMininumY(), region.getMaximumY()));
+        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMinimumY(), region.getMaximumY()));
     }
 
     public void explainRegionAdjust(LocalPlayer player, LocalSession session) {
-        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMininumY(), region.getMaximumY()));
+        session.dispatchCUIEvent(player, new SelectionShapeEvent(getTypeID()));
+        describeCUI(session, player);
     }
 
     public BlockVector getPrimaryPosition() throws IncompleteRegionException {
@@ -194,7 +205,7 @@ public class Polygonal2DRegionSelector implements RegionSelector, CUIRegion {
             session.dispatchCUIEvent(player, new SelectionPoint2DEvent(id, points.get(id), getArea()));
         }
 
-        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMininumY(), region.getMaximumY()));
+        session.dispatchCUIEvent(player, new SelectionMinMaxEvent(region.getMinimumY(), region.getMaximumY()));
     }
 
     public void describeLegacyCUI(LocalSession session, LocalPlayer player) {

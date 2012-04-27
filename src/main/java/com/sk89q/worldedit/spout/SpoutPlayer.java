@@ -1,7 +1,6 @@
-// $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
+ * Copyright (C) 2012 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +14,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
+
+// $Id$
+
 
 package com.sk89q.worldedit.spout;
 
@@ -27,12 +29,11 @@ import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.WorldVector;
 import com.sk89q.worldedit.bags.BlockBag;
 import com.sk89q.worldedit.cui.CUIEvent;
+
+import org.spout.api.entity.Entity;
 import org.spout.api.geo.discrete.Point;
-import org.spout.api.geo.discrete.atomic.Transform;
 import org.spout.api.inventory.ItemStack;
-import org.spout.api.material.MaterialData;
-import org.spout.api.math.Quaternion;
-import org.spout.api.math.Vector3;
+import org.spout.api.material.MaterialRegistry;
 import org.spout.api.player.Player;
 
 public class SpoutPlayer extends LocalPlayer {
@@ -59,24 +60,24 @@ public class SpoutPlayer extends LocalPlayer {
 
     @Override
     public WorldVector getPosition() {
-        Point loc = player.getEntity().getTransform().getPosition();
+        Point loc = player.getEntity().getPosition();
         return new WorldVector(SpoutUtil.getLocalWorld(loc.getWorld()),
                 loc.getX(), loc.getY(), loc.getZ());
     }
 
     @Override
     public double getPitch() {
-        return player.getEntity().getTransform().getRotation().getAxisAngles().getY();
+        return player.getEntity().getPitch();
     }
 
     @Override
     public double getYaw() {
-        return player.getEntity().getTransform().getRotation().getAxisAngles().getZ();
+        return player.getEntity().getYaw();
     }
 
     @Override
     public void giveItem(int type, int amt) {
-        player.getEntity().getInventory().addItem(new ItemStack(MaterialData.getMaterial((short)type), amt));
+        player.getEntity().getInventory().addItem(new ItemStack(MaterialRegistry.get((short) type), amt), false);
     }
 
     @Override
@@ -109,9 +110,11 @@ public class SpoutPlayer extends LocalPlayer {
 
     @Override
     public void setPosition(Vector pos, float pitch, float yaw) {
-        Transform t = player.getEntity().getTransform();
-        t.setPosition(new Point(t.getPosition().getWorld(), (float) pos.getX(), (float) pos.getY(), (float) pos.getZ()));
-        t.setRotation(new Quaternion(pitch, Vector3.UNIT_Z).rotate(yaw, Vector3.UNIT_Y));
+        final Entity entity = player.getEntity();
+        entity.setPosition(SpoutUtil.toPoint(entity.getWorld(), pos));
+        entity.setPitch(pitch);
+        entity.setYaw(yaw);
+        player.getNetworkSynchronizer().setPositionDirty();
     }
 
     @Override
@@ -131,7 +134,7 @@ public class SpoutPlayer extends LocalPlayer {
 
     @Override
     public LocalWorld getWorld() {
-        return SpoutUtil.getLocalWorld(player.getEntity().getTransform().getPosition().getWorld());
+        return SpoutUtil.getLocalWorld(player.getEntity().getWorld());
     }
 
     @Override

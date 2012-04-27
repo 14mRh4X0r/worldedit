@@ -24,8 +24,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.jar.JarFile;
-import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 
 import com.sk89q.util.yaml.YAMLProcessor;
@@ -41,14 +42,15 @@ import com.sk89q.worldedit.regions.*;
 
 /**
  * Plugin for Bukkit.
- * 
+ *
  * @author sk89q
  */
 public class WorldEditPlugin extends JavaPlugin {
+
     /**
-     * WorldEdit messages get sent here.
+     * The name of the CUI's plugin channel registration
      */
-    private static final Logger logger = Logger.getLogger("Minecraft.WorldEdit");
+    public static final String CUI_PLUGIN_CHANNEL = "WECUI";
 
     /**
      * The server interface that all server-related API goes through.
@@ -69,13 +71,17 @@ public class WorldEditPlugin extends JavaPlugin {
     private BukkitConfiguration config;
 
     /**
+     * Stores players who are using plugin channels for the cui
+     */
+    private final Map<String, Boolean> pluginChannelCui = new HashMap<String, Boolean>();
+
+    /**
      * Called on plugin enable.
      */
     public void onEnable() {
         final String pluginYmlVersion = getDescription().getVersion();
         final String manifestVersion = WorldEdit.getVersion();
 
-        logger.info("WorldEdit " + pluginYmlVersion + " enabled.");
         if (!manifestVersion.equalsIgnoreCase(pluginYmlVersion)) {
             WorldEdit.setVersion(manifestVersion + " (" + pluginYmlVersion + ")");
         }
@@ -88,16 +94,18 @@ public class WorldEditPlugin extends JavaPlugin {
 
         // Set up configuration and such, including the permissions
         // resolver
-        config = new BukkitConfiguration(new YAMLProcessor(new File(getDataFolder(), "config.yml"), true), logger);
+        config = new BukkitConfiguration(new YAMLProcessor(new File(getDataFolder(), "config.yml"), true), this);
         PermissionsResolverManager.initialize(this);
 
         // Load the configuration
-        loadConfiguration();
+        config.load();
 
         // Setup interfaces
         server = new BukkitServerInterface(this, getServer());
         controller = new WorldEdit(server, config);
         api = new WorldEditAPI(this);
+        getServer().getMessenger().registerIncomingPluginChannel(this, CUI_PLUGIN_CHANNEL, new CUIChannelListener(this));
+        getServer().getMessenger().registerOutgoingPluginChannel(this, CUI_PLUGIN_CHANNEL);
 
         // Now we can register events!
         getServer().getPluginManager().registerEvents(new WorldEditListener(this), this);
@@ -133,7 +141,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Create a default configuration file from the .jar.
-     * 
+     *
      * @param name
      */
     protected void createDefaultConfiguration(String name) {
@@ -147,7 +155,7 @@ public class WorldEditPlugin extends JavaPlugin {
                 if (copy == null) throw new FileNotFoundException();
                 input = file.getInputStream(copy);
             } catch (IOException e) {
-                logger.severe(getDescription().getName() + ": Unable to read default configuration: " + name);
+                getLogger().severe("Unable to read default configuration: " + name);
             }
             if (input != null) {
                 FileOutputStream output = null;
@@ -160,8 +168,7 @@ public class WorldEditPlugin extends JavaPlugin {
                         output.write(buf, 0, length);
                     }
 
-                    logger.info(getDescription().getName()
-                            + ": Default configuration file written: " + name);
+                    getLogger().info("Default configuration file written: " + name);
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
@@ -201,7 +208,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Gets the session for the player.
-     * 
+     *
      * @param player
      * @return
      */
@@ -211,7 +218,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Gets the session for the player.
-     * 
+     *
      * @param player
      * @return
      */
@@ -229,7 +236,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Remember an edit session.
-     * 
+     *
      * @param player
      * @param editSession
      */
@@ -245,7 +252,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Wrap an operation into an EditSession.
-     * 
+     *
      * @param player
      * @param op
      * @throws Throwable
@@ -265,7 +272,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Get the API.
-     * 
+     *
      * @return
      */
     @Deprecated
@@ -275,7 +282,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Returns the configuration used by WorldEdit.
-     * 
+     *
      * @return
      */
     public BukkitConfiguration getLocalConfiguration() {
@@ -284,7 +291,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Get the permissions resolver in use.
-     * 
+     *
      * @return
      */
     public PermissionsResolverManager getPermissionsResolver() {
@@ -293,7 +300,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Used to wrap a Bukkit Player as a LocalPlayer.
-     * 
+     *
      * @param player
      * @return
      */
@@ -308,10 +315,10 @@ public class WorldEditPlugin extends JavaPlugin {
 
         return new BukkitCommandSender(this, this.server, sender);
     }
-    
+
     /**
      * Get the server interface.
-     * 
+     *
      * @return
      */
     public ServerInterface getServerInterface() {
@@ -320,7 +327,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Get WorldEdit.
-     * 
+     *
      * @return
      */
     public WorldEdit getWorldEdit() {
@@ -329,7 +336,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Gets the region selection for the player.
-     * 
+     *
      * @param player
      * @return the selection or null if there was none
      */
@@ -362,7 +369,7 @@ public class WorldEditPlugin extends JavaPlugin {
 
     /**
      * Sets the region selection for a player.
-     * 
+     *
      * @param player
      * @param selection
      */
@@ -381,5 +388,18 @@ public class WorldEditPlugin extends JavaPlugin {
         RegionSelector sel = selection.getRegionSelector();
         session.setRegionSelector(BukkitUtil.getLocalWorld(player.getWorld()), sel);
         session.dispatchCUISelection(wrapPlayer(player));
+    }
+
+    public void setPluginChannelCUI(String name, boolean value) {
+        pluginChannelCui.put(name, value);
+    }
+
+    public boolean hasPluginChannelCUI(String name) {
+        Boolean val = pluginChannelCui.get(name);
+        if (val == null) {
+            return false;
+        } else {
+            return val;
+        }
     }
 }

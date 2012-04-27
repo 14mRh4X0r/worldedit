@@ -77,6 +77,7 @@ public class PropertiesConfiguration extends LocalConfiguration {
         }
 
         profile = getBool("profile", profile);
+        enableWECUI = getBool("enable-wecui-handshake", enableWECUI);
         disallowedBlocks = getIntSet("disallowed-blocks", defaultDisallowedBlocks);
         defaultChangeLimit = getInt("default-max-changed-blocks", defaultChangeLimit);
         maxChangeLimit = getInt("max-changed-blocks", maxChangeLimit);
@@ -95,6 +96,7 @@ public class PropertiesConfiguration extends LocalConfiguration {
         navigationWand = getInt("nav-wand-item", navigationWand);
         navigationWandMaxDistance = getInt("nav-wand-distance", navigationWandMaxDistance);
         scriptTimeout = getInt("scripting-timeout", scriptTimeout);
+        butcherDefaultRadius = getInt("butcher-default-radius", butcherDefaultRadius);
 
         LocalSession.MAX_HISTORY_SIZE = Math.max(15, getInt("history-size", 15));
 

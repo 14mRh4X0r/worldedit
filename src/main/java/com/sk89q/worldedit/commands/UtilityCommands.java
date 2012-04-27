@@ -346,14 +346,16 @@ public class UtilityCommands {
     @Command(
         aliases = { "butcher" },
         usage = "[radius]",
-        flags = "plan",
+        flags = "plangf",
         desc = "Kill all or nearby mobs",
         help =
-            "Kills nearby mobs, or all mobs if you don't specify a radius.\n" +
+            "Kills nearby mobs, based on radius, if none is given uses default in configuration.\n" +
             "Flags:" +
             "  -p also kills pets.\n" +
             "  -n also kills NPCs.\n" +
+            "  -g also kills Golems.\n" +
             "  -a also kills animals.\n" +
+            "  -f compounds all previous flags.\n" +
             "  -l strikes lightning on each killed mob.",
         min = 0,
         max = 1
@@ -364,25 +366,56 @@ public class UtilityCommands {
     public void butcher(CommandContext args, LocalSession session, LocalPlayer player,
             EditSession editSession) throws WorldEditException {
 
-        int radius = args.argsLength() > 0 ? Math.max(1, args.getInteger(0)) : -1;
+        LocalConfiguration config = we.getConfiguration();
+    	
+        final int radius;
+        
+        if(args.argsLength() > 0){
+        	radius =  Math.max(1, args.getInteger(0));
+        }
+        else{
+        	radius = config.butcherDefaultRadius;
+        }
 
-        int flags = 0;
-        if (args.hasFlag('p')) flags |= KillFlags.PETS;
-        if (args.hasFlag('n')) flags |= KillFlags.NPCS;
-        if (args.hasFlag('a')) flags |= KillFlags.ANIMALS;
-        if (args.hasFlag('l') && player.hasPermission("worldedit.butcher.lightning")) flags |= KillFlags.WITH_LIGHTNING;
+        FlagContainer flags = new FlagContainer(player);
+        flags.or(KillFlags.FRIENDLY      , args.hasFlag('f'));
+        flags.or(KillFlags.PETS          , args.hasFlag('p'), "worldedit.butcher.pets");
+        flags.or(KillFlags.NPCS          , args.hasFlag('n'), "worldedit.butcher.npcs");
+        flags.or(KillFlags.GOLEMS        , args.hasFlag('g'), "worldedit.butcher.golems");
+        flags.or(KillFlags.ANIMALS       , args.hasFlag('a'), "worldedit.butcher.animals");
+        flags.or(KillFlags.WITH_LIGHTNING, args.hasFlag('l'), "worldedit.butcher.lightning");
 
         int killed;
         if (player.isPlayer()) {
-            killed = player.getWorld().killMobs(session.getPlacementPosition(player), radius, flags);
+            killed = player.getWorld().killMobs(session.getPlacementPosition(player), radius, flags.flags);
         } else {
             killed = 0;
             for (LocalWorld world : we.getServer().getWorlds()) {
-                killed += world.killMobs(new Vector(), radius, flags);
+                killed += world.killMobs(new Vector(), radius, flags.flags);
             }
         }
 
         player.print("Killed " + killed + " mobs.");
+    }
+
+    public class FlagContainer {
+        private final LocalPlayer player;
+        public int flags = 0;
+        public FlagContainer(LocalPlayer player) {
+            this.player = player;
+        }
+
+        public void or(int flag, boolean on) {
+            if (on) flags |= flag;
+        }
+
+        public void or(int flag, boolean on, String permission) {
+            or(flag, on);
+
+            if ((flags & flag) != 0 && !player.hasPermission(permission)) {
+                flags &= ~flag;
+            }
+        }
     }
 
     @Command(
@@ -412,6 +445,8 @@ public class UtilityCommands {
         } else if (typeStr.matches("items?")
                 || typeStr.matches("drops?")) {
             type = EntityType.ITEMS;
+        } else if (typeStr.matches("falling(blocks?|sand|gravel)")) {
+            type = EntityType.FALLING_BLOCKS;
         } else if (typeStr.matches("paintings?")
                 || typeStr.matches("art")) {
             type = EntityType.PAINTINGS;

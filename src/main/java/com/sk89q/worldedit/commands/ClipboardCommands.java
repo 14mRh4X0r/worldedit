@@ -19,42 +19,45 @@
 
 package com.sk89q.worldedit.commands;
 
-import java.io.File;
-import java.io.IOException;
 import com.sk89q.minecraft.util.commands.Command;
 import com.sk89q.minecraft.util.commands.CommandContext;
 import com.sk89q.minecraft.util.commands.CommandPermissions;
 import com.sk89q.minecraft.util.commands.Logging;
 import static com.sk89q.minecraft.util.commands.Logging.LogMode.*;
+
+import com.sk89q.minecraft.util.commands.NestedCommand;
 import com.sk89q.worldedit.*;
 import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.blocks.BlockID;
-import com.sk89q.worldedit.data.DataException;
 import com.sk89q.worldedit.regions.Region;
 
 /**
  * Clipboard commands.
- * 
+ *
  * @author sk89q
  */
 public class ClipboardCommands {
     private final WorldEdit we;
-    
+
     public ClipboardCommands(WorldEdit we) {
         this.we = we;
     }
 
     @Command(
         aliases = { "/copy" },
-        usage = "",
+        flags = "e",
         desc = "Copy the selection to the clipboard",
+        help = "Copy the selection to the clipboard\n" +
+                "Flags:\n" +
+                "  -e controls whether entities are copied\n" +
+                "WARNING: Pasting entities cannot yet be undone!",
         min = 0,
         max = 0
     )
     @CommandPermissions("worldedit.clipboard.copy")
     public void copy(CommandContext args, LocalSession session, LocalPlayer player,
             EditSession editSession) throws WorldEditException {
-            
+
         Region region = session.getSelection(player.getWorld());
         Vector min = region.getMinimumPoint();
         Vector max = region.getMaximumPoint();
@@ -64,6 +67,11 @@ public class ClipboardCommands {
                 max.subtract(min).add(new Vector(1, 1, 1)),
                 min, min.subtract(pos));
         clipboard.copy(editSession);
+        if (args.hasFlag('e')) {
+            for (LocalEntity entity : player.getWorld().getEntities(region)) {
+                clipboard.storeEntity(entity);
+            }
+        }
         session.setClipboard(clipboard);
 
         player.print("Block(s) copied.");
@@ -73,6 +81,11 @@ public class ClipboardCommands {
         aliases = { "/cut" },
         usage = "[leave-id]",
         desc = "Cut the selection to the clipboard",
+        help = "Copy the selection to the clipboard\n" +
+                "Flags:\n" +
+                "  -e controls whether entities are copied\n" +
+                "WARNING: Cutting and pasting entities cannot yet be undone!",
+        flags = "e",
         min = 0,
         max = 1
     )
@@ -82,12 +95,13 @@ public class ClipboardCommands {
             EditSession editSession) throws WorldEditException {
 
         BaseBlock block = new BaseBlock(BlockID.AIR);
+        LocalWorld world = player.getWorld();
 
         if (args.argsLength() > 0) {
             block = we.getBlock(player, args.getString(0));
         }
 
-        Region region = session.getSelection(player.getWorld());
+        Region region = session.getSelection(world);
         Vector min = region.getMinimumPoint();
         Vector max = region.getMaximumPoint();
         Vector pos = session.getPlacementPosition(player);
@@ -96,9 +110,16 @@ public class ClipboardCommands {
                 max.subtract(min).add(new Vector(1, 1, 1)),
                 min, min.subtract(pos));
         clipboard.copy(editSession);
+        if (args.hasFlag('e')) {
+            LocalEntity[] entities = world.getEntities(region);
+            for (LocalEntity entity : entities) {
+                clipboard.storeEntity(entity);
+            }
+            world.killEntities(entities);
+        }
         session.setClipboard(clipboard);
 
-        editSession.setBlocks(session.getSelection(player.getWorld()), block);
+        editSession.setBlocks(session.getSelection(world), block);
         player.print("Block(s) cut.");
     }
 
@@ -126,11 +147,12 @@ public class ClipboardCommands {
         if (atOrigin) {
             Vector pos = session.getClipboard().getOrigin();
             session.getClipboard().place(editSession, pos, pasteNoAir);
+            session.getClipboard().pasteEntities(pos);
             player.findFreePosition();
             player.print("Pasted to copy origin. Undo with //undo");
         } else {
             Vector pos = session.getPlacementPosition(player);
-            session.getClipboard().paste(editSession, pos, pasteNoAir);
+            session.getClipboard().paste(editSession, pos, pasteNoAir, true);
             player.findFreePosition();
             player.print("Pasted relative to you. Undo with //undo");
         }
@@ -146,7 +168,7 @@ public class ClipboardCommands {
     @CommandPermissions("worldedit.clipboard.rotate")
     public void rotate(CommandContext args, LocalSession session, LocalPlayer player,
             EditSession editSession) throws WorldEditException {
-        
+
         int angle = args.getInteger(0);
 
         if (angle % 90 == 0) {
@@ -186,78 +208,36 @@ public class ClipboardCommands {
         aliases = { "/load" },
         usage = "<filename>",
         desc = "Load a schematic into your clipboard",
-        min = 1,
+        min = 0,
         max = 1
     )
+    @Deprecated
     @CommandPermissions("worldedit.clipboard.load")
     public void load(CommandContext args, LocalSession session, LocalPlayer player,
             EditSession editSession) throws WorldEditException {
-        
-        LocalConfiguration config = we.getConfiguration();
-
-        String filename = args.getString(0);
-        File dir = we.getWorkingDirectoryFile(config.saveDir);
-        File f = we.getSafeOpenFile(player, dir, filename, "schematic", "schematic");
-
-        try {
-            String filePath = f.getCanonicalPath();
-            String dirPath = dir.getCanonicalPath();
-
-            if (!filePath.substring(0, dirPath.length()).equals(dirPath)) {
-                player.printError("Schematic could not read or it does not exist.");
-            } else {
-                session.setClipboard(CuboidClipboard.loadSchematic(f));
-                WorldEdit.logger.info(player.getName() + " loaded " + filePath);
-                player.print(filename + " loaded. Paste it with //paste");
-            }
-        } catch (DataException e) {
-            player.printError("Load error: " + e.getMessage());
-        } catch (IOException e) {
-            player.printError("Schematic could not read or it does not exist: " + e.getMessage());
-        }
+        player.printError("This command is no longer used. See //schematic load.");
     }
 
     @Command(
         aliases = { "/save" },
         usage = "<filename>",
         desc = "Save a schematic into your clipboard",
-        min = 1,
+        min = 0,
         max = 1
     )
+    @Deprecated
     @CommandPermissions("worldedit.clipboard.save")
     public void save(CommandContext args, LocalSession session, LocalPlayer player,
             EditSession editSession) throws WorldEditException {
-        
-        LocalConfiguration config = we.getConfiguration();
-
-        String filename = args.getString(0);
-
-        File dir = we.getWorkingDirectoryFile(config.saveDir);
-        File f = we.getSafeSaveFile(player, dir, filename, "schematic", "schematic");
-
-        if (!dir.exists()) {
-            if (!dir.mkdir()) {
-                player.printError("The storage folder could not be created.");
-                return;
-            }
-        }
-
-        try {
-            // Create parent directories
-            File parent = f.getParentFile();
-            if (parent != null && !parent.exists()) {
-                parent.mkdirs();
-            }
-
-            session.getClipboard().saveSchematic(f);
-            WorldEdit.logger.info(player.getName() + " saved " + f.getCanonicalPath());
-            player.print(filename + " saved.");
-        } catch (DataException se) {
-            player.printError("Save error: " + se.getMessage());
-        } catch (IOException e) {
-            player.printError("Schematic could not written: " + e.getMessage());
-        }
+        player.printError("This command is no longer used. See //schematic save.");
     }
+
+    @Command(
+            aliases = { "/schematic", "/schem"},
+            desc = "Schematic-related commands"
+    )
+    @NestedCommand(SchematicCommands.class)
+    public void schematic() {}
 
     @Command(
         aliases = { "clearclipboard" },

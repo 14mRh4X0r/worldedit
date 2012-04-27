@@ -25,20 +25,23 @@ import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.blocks.BlockType;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.util.TreeGenerator;
 
 /**
  * Represents a world.
- * 
+ *
  * @author sk89q
  */
 public abstract class LocalWorld {
     /**
-     * Named flags to use as parameters to {@link LocalWorld#killMobs(Vector, int, int)}
+     * Named flags to use as parameters to {@link LocalWorld#killMobs(Vector, double, int)}
      */
     public class KillFlags {
         public static final int PETS = 1 << 0;
         public static final int NPCS = 1 << 1;
         public static final int ANIMALS = 1 << 2;
+        public static final int GOLEMS = 1 << 3;
+        public static final int FRIENDLY = PETS | NPCS | ANIMALS | GOLEMS;
         public static final int WITH_LIGHTNING = 1 << 20;
     }
 
@@ -49,14 +52,14 @@ public abstract class LocalWorld {
 
     /**
      * Get the name of the world.
-     * 
+     *
      * @return
      */
     public abstract String getName();
 
     /**
      * Set block type.
-     * 
+     *
      * @param pt
      * @param type
      * @return
@@ -65,7 +68,7 @@ public abstract class LocalWorld {
 
     /**
      * Set block type.
-     * 
+     *
      * @param pt
      * @param type
      * @return
@@ -76,7 +79,7 @@ public abstract class LocalWorld {
 
     /**
      * Get block type.
-     * 
+     *
      * @param pt
      * @return
      */
@@ -84,7 +87,7 @@ public abstract class LocalWorld {
 
     /**
      * Set block data.
-     * 
+     *
      * @param pt
      * @param data
      */
@@ -93,11 +96,26 @@ public abstract class LocalWorld {
 
     /**
      * Set block data.
-     * 
+     *
      * @param pt
      * @param data
      */
     public abstract void setBlockDataFast(Vector pt, int data);
+
+    /**
+     * Get biome type
+     *
+     * @param pt The (x, z) location to check the biome at
+     * @return The biome type at the location
+     */
+    public abstract BiomeType getBiome(Vector2D pt);
+
+    /**
+     * Set the biome type
+     * @param pt The (x, z) location to set the biome at
+     * @param biome The biome type to set to
+     */
+    public abstract void setBiome(Vector2D pt, BiomeType biome);
 
     /**
      * set block type & data
@@ -117,7 +135,7 @@ public abstract class LocalWorld {
      * @param pt
      * @param type
      * @param data
-     * @return 
+     * @return
      */
     public boolean setTypeIdAndDataFast(Vector pt, int type, int data) {
         boolean ret = setBlockTypeFast(pt, type);
@@ -127,7 +145,7 @@ public abstract class LocalWorld {
 
     /**
      * Get block data.
-     * 
+     *
      * @param pt
      * @return
      */
@@ -135,7 +153,7 @@ public abstract class LocalWorld {
 
     /**
      * Get block light level.
-     * 
+     *
      * @param pt
      * @return
      */
@@ -143,7 +161,7 @@ public abstract class LocalWorld {
 
     /**
      * Regenerate an area.
-     * 
+     *
      * @param region
      * @param editSession
      * @return
@@ -152,7 +170,7 @@ public abstract class LocalWorld {
 
     /**
      * Attempts to accurately copy a BaseBlock's extra data to the world.
-     * 
+     *
      * @param pt
      * @param block
      * @return
@@ -161,7 +179,7 @@ public abstract class LocalWorld {
 
     /**
      * Attempts to read a BaseBlock's extra data from the world.
-     * 
+     *
      * @param pt
      * @param block
      * @return
@@ -170,7 +188,7 @@ public abstract class LocalWorld {
 
     /**
      * Clear a chest's contents.
-     * 
+     *
      * @param pt
      * @return
      */
@@ -178,64 +196,109 @@ public abstract class LocalWorld {
 
     /**
      * Generate a tree at a location.
-     * 
+     *
      * @param editSession
      * @param pt
      * @return
      * @throws MaxChangedBlocksException
+     * @deprecated use {@link #generateTree(com.sk89q.worldedit.util.TreeGenerator.TreeType, EditSession, Vector)} instead
      */
-    public abstract boolean generateTree(EditSession editSession, Vector pt)
-            throws MaxChangedBlocksException;
+    @Deprecated
+    public boolean generateTree(EditSession editSession, Vector pt)
+            throws MaxChangedBlocksException {
+        return false;
+    }
 
     /**
      * Generate a big tree at a location.
-     * 
+     *
      * @param editSession
      * @param pt
      * @return
      * @throws MaxChangedBlocksException
+     * @deprecated use {@link #generateTree(com.sk89q.worldedit.util.TreeGenerator.TreeType, EditSession, Vector)} instead
      */
-    public abstract boolean generateBigTree(EditSession editSession, Vector pt)
-            throws MaxChangedBlocksException;
+    @Deprecated
+    public boolean generateBigTree(EditSession editSession, Vector pt)
+            throws MaxChangedBlocksException {
+        return false;
+    }
 
     /**
      * Generate a birch tree at a location.
-     * 
+     *
      * @param editSession
      * @param pt
      * @return
      * @throws MaxChangedBlocksException
+     * @deprecated use {@link #generateTree(com.sk89q.worldedit.util.TreeGenerator.TreeType, EditSession, Vector)} instead
      */
-    public abstract boolean generateBirchTree(EditSession editSession, Vector pt)
-            throws MaxChangedBlocksException;
+    @Deprecated
+    public boolean generateBirchTree(EditSession editSession, Vector pt)
+            throws MaxChangedBlocksException {
+        return false;
+    }
 
     /**
      * Generate a redwood tree at a location.
-     * 
+     *
      * @param editSession
      * @param pt
      * @return
      * @throws MaxChangedBlocksException
+     * @deprecated use {@link #generateTree(com.sk89q.worldedit.util.TreeGenerator.TreeType, EditSession, Vector)} instead
      */
-    public abstract boolean generateRedwoodTree(EditSession editSession, Vector pt)
-            throws MaxChangedBlocksException;
+    @Deprecated
+    public boolean generateRedwoodTree(EditSession editSession, Vector pt)
+            throws MaxChangedBlocksException {
+        return false;
+    }
 
     /**
      * Generate a tall redwood tree at a location.
-     * 
-     * @param editSession 
+     *
+     * @param editSession
      * @param pt
      * @return
-     * @throws MaxChangedBlocksException 
+     * @throws MaxChangedBlocksException
+     * @deprecated use {@link #generateTree(com.sk89q.worldedit.util.TreeGenerator.TreeType, EditSession, Vector)} instead
      */
-    public abstract boolean generateTallRedwoodTree(EditSession editSession, Vector pt)
-            throws MaxChangedBlocksException;
+    @Deprecated
+    public boolean generateTallRedwoodTree(EditSession editSession, Vector pt)
+            throws MaxChangedBlocksException {
+        return false;
+    }
+
+    /**
+     * Generates a tree
+     * @param type The type of tree to generate
+     * @param editSession The EditSession to pass block changes through
+     * @param pt The point where the base of the tree should be located
+     * @return Whether the tree generation was successful
+     * @throws MaxChangedBlocksException if too many blocks were changed by the EditSession
+     */
+    public boolean generateTree(TreeGenerator.TreeType type, EditSession editSession, Vector pt)
+            throws MaxChangedBlocksException {
+        switch (type) {
+            case BIG_TREE:
+                return generateBigTree(editSession, pt);
+            case BIRCH:
+                return generateBirchTree(editSession, pt);
+            case REDWOOD:
+                return generateRedwoodTree(editSession, pt);
+            case TALL_REDWOOD:
+                return generateTallRedwoodTree(editSession, pt);
+            default:
+            case TREE:
+                return generateTree(editSession, pt);
+        }
+    }
 
     /**
      * Drop an item.
-     * 
+     *
      * @param pt
-     * @param item 
+     * @param item
      * @param times
      */
     public void dropItem(Vector pt, BaseItemStack item, int times) {
@@ -246,7 +309,7 @@ public abstract class LocalWorld {
 
     /**
      * Drop an item.
-     * 
+     *
      * @param pt
      * @param item
      */
@@ -254,7 +317,7 @@ public abstract class LocalWorld {
 
     /**
      * Simulate a block being mined.
-     * 
+     *
      * @param pt
      */
     public void simulateBlockMine(Vector pt) {
@@ -273,9 +336,8 @@ public abstract class LocalWorld {
 
     /**
      * Kill mobs in an area, excluding pet wolves.
-     * 
-     * @param origin
-     * @param radius
+     *
+     * @param origin  -1 for the whole world
      * @return
      */
     @Deprecated
@@ -285,10 +347,10 @@ public abstract class LocalWorld {
 
     /**
      * Kill mobs in an area.
-     * 
-     * @param origin
+     *
+     * @param origin The center of the area to kill mobs in
      * @param radius -1 for all mobs
-     * @param flags various flags that determine what to kill
+     * @param killPets whether to kill pets
      * @return
      */
     @Deprecated
@@ -298,10 +360,10 @@ public abstract class LocalWorld {
 
     /**
      * Kill mobs in an area.
-     * 
+     *
      * @param origin
      * @param radius
-     * @param killflags
+     * @param flags
      * @return
      */
     public int killMobs(Vector origin, double radius, int flags) {
@@ -310,8 +372,8 @@ public abstract class LocalWorld {
 
     /**
      * Remove entities in an area.
-     * 
-     * @param type 
+     *
+     * @param type
      * @param origin
      * @param radius
      * @return
@@ -320,17 +382,17 @@ public abstract class LocalWorld {
 
     /**
      * Returns whether a block has a valid ID.
-     * 
+     *
      * @param type
      * @return
      */
     public boolean isValidBlockType(int type) {
         return BlockType.fromID(type) != null;
     }
-    
+
     /**
      * Returns whether a block uses its data value.
-     * 
+     *
      * @param type block ID type
      * @return true if the block uses data value
      */
@@ -349,7 +411,7 @@ public abstract class LocalWorld {
 
     /**
      * Compare if the other world is equal.
-     * 
+     *
      * @param other
      * @return
      */
@@ -358,7 +420,7 @@ public abstract class LocalWorld {
 
     /**
      * Hash code.
-     * 
+     *
      * @return
      */
     @Override
@@ -366,16 +428,16 @@ public abstract class LocalWorld {
 
     /**
      * Get the world's height
-     * 
+     *
      * @return
      */
     public int getMaxY() {
-        return 127;
+        return 255;
     }
 
     /**
      * Does some post-processing. Should be called after using fast mode
-     * 
+     *
      * @param chunks the chunks to fix
      */
     public void fixAfterFastMode(Iterable<BlockVector2D> chunks) {
@@ -419,7 +481,7 @@ public abstract class LocalWorld {
     private int taskId = -1;
     public boolean queueBlockBreakEffect(ServerInterface server, Vector position, int blockId, double priority) {
         if (taskId == -1) {
-            taskId = server.schedule(0, 1, new Runnable() { 
+            taskId = server.schedule(0, 1, new Runnable() {
                 public void run() {
                     int max = Math.max(1, Math.min(30, effectQueue.size() / 3));
                     for (int i = 0; i < max; ++i) {
@@ -438,5 +500,13 @@ public abstract class LocalWorld {
         effectQueue.offer(new QueuedEffect(position, blockId, priority));
 
         return true;
+    }
+
+    public LocalEntity[] getEntities(Region region) {
+        return new LocalEntity[0];
+    }
+
+    public int killEntities(LocalEntity... entities) {
+        return 0;
     }
 }

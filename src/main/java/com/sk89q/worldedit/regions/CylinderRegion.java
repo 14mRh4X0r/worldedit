@@ -20,7 +20,11 @@
 package com.sk89q.worldedit.regions;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
+
+import com.sk89q.worldedit.BlockVector;
+import com.sk89q.worldedit.BlockVector2D;
 import com.sk89q.worldedit.LocalWorld;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.Vector2D;
@@ -31,9 +35,8 @@ import com.sk89q.worldedit.data.ChunkStore;
  *
  * @author yetanotherx
  */
-public class CylinderRegion extends AbstractRegion {
-    private Vector center;
-    private Vector2D center2D;
+public class CylinderRegion extends AbstractRegion implements FlatRegion {
+    private Vector2D center;
     private Vector2D radius;
     private int minY;
     private int maxY;
@@ -48,7 +51,7 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Construct the region.
-     * 
+     *
      * @param world
      */
     public CylinderRegion(LocalWorld world) {
@@ -58,15 +61,16 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Construct the region.
-     * 
+     *
      * @param world
-     * @param points
+     * @param center
+     * @param radius
      * @param minY
      * @param maxY
      */
     public CylinderRegion(LocalWorld world, Vector center, Vector2D radius, int minY, int maxY) {
         super(world);
-        setCenter(center);
+        setCenter(center.toVector2D());
         setRadius(radius);
         this.minY = minY;
         this.maxY = maxY;
@@ -74,32 +78,42 @@ public class CylinderRegion extends AbstractRegion {
     }
 
     public CylinderRegion(CylinderRegion region) {
-        this(region.world, region.center, region.getRadius(), region.minY, region.maxY);
+        this(region.world, region.getCenter(), region.getRadius(), region.minY, region.maxY);
         hasY = region.hasY;
     }
 
     /**
      * Returns the main center point of the cylinder
-     * 
-     * @return 
+     *
+     * @return
      */
     public Vector getCenter() {
-        return center;
+        return center.toVector((maxY + minY) / 2);
     }
 
     /**
      * Sets the main center point of the region
-     * 
+     *
+     * @deprecated replaced by {@link #setCenter(Vector2D)}
      */
+    @Deprecated
     public void setCenter(Vector center) {
+        setCenter(center.toVector2D());
+    }
+
+    /**
+     * Sets the main center point of the region
+     *
+     * @param center
+     */
+    public void setCenter(Vector2D center) {
         this.center = center;
-        this.center2D = center.toVector2D();
     }
 
     /**
      * Returns the radius of the cylinder
-     * 
-     * @return 
+     *
+     * @return
      */
     public Vector2D getRadius() {
         return radius.subtract(0.5, 0.5);
@@ -107,8 +121,8 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Sets the radius of the cylinder
-     * 
-     * @param radius 
+     *
+     * @param radius
      */
     public void setRadius(Vector2D radius) {
         this.radius = radius.add(0.5, 0.5);
@@ -116,7 +130,7 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Extends the radius to be at least the given radius
-     * 
+     *
      * @param minRadius
      */
     public void extendRadius(Vector2D minRadius) {
@@ -125,7 +139,7 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Set the minimum Y.
-     * 
+     *
      * @param y
      */
     public void setMinimumY(int y) {
@@ -135,7 +149,7 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Se the maximum Y.
-     * 
+     *
      * @param y
      */
     public void setMaximumY(int y) {
@@ -145,25 +159,25 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Get the lower point of a region.
-     * 
+     *
      * @return min. point
      */
     public Vector getMinimumPoint() {
-        return center2D.subtract(getRadius()).toVector(minY);
+        return center.subtract(getRadius()).toVector(minY);
     }
 
     /**
      * Get the upper point of a region.
-     * 
+     *
      * @return max. point
      */
     public Vector getMaximumPoint() {
-        return center2D.add(getRadius()).toVector(maxY);
+        return center.add(getRadius()).toVector(maxY);
     }
 
     /**
      * Gets the maximum Y value
-     * @return 
+     * @return
      */
     public int getMaximumY() {
         return maxY;
@@ -171,7 +185,7 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Gets the minimum Y value
-     * @return 
+     * @return
      */
     public int getMinimumY() {
         return minY;
@@ -179,7 +193,7 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Get the number of blocks in the region.
-     * 
+     *
      * @return number of blocks
      */
     public int getArea() {
@@ -213,45 +227,72 @@ public class CylinderRegion extends AbstractRegion {
         return (int) (2 * radius.getZ());
     }
 
-    /**
-     * Expand the region.
-     *
-     * @param change
-     */
-    public void expand(Vector change) throws RegionOperationException {
-        if (change.getBlockX() != 0 || change.getBlockZ() != 0) {
-            throw new RegionOperationException("Cylinders can only be expanded vertically.");
+    private Vector2D calculateDiff2D(Vector... changes) throws RegionOperationException {
+        Vector2D diff = new Vector2D();
+        for (Vector change : changes) {
+            diff = diff.add(change.toVector2D());
         }
 
-        int changeY = change.getBlockY();
-        if (changeY > 0) {
-            maxY += changeY;
-        } else {
-            minY += changeY;
+        if ((diff.getBlockX() & 1) + (diff.getBlockZ() & 1) != 0) {
+            throw new RegionOperationException("Cylinders changes must be even for each horizontal dimensions.");
+        }
+
+        return diff.divide(2).floor();
+    }
+
+    private Vector2D calculateChanges2D(Vector... changes) {
+        Vector2D total = new Vector2D();
+        for (Vector change : changes) {
+            total = total.add(change.toVector2D().positive());
+        }
+
+        return total.divide(2).floor();
+    }
+
+    /**
+     * Expand the region.
+     * Expand the region.
+     *
+     * @param changes array/arguments with multiple related changes
+     * @throws RegionOperationException
+     */
+    public void expand(Vector... changes) throws RegionOperationException {
+        center = center.add(calculateDiff2D(changes));
+        radius = radius.add(calculateChanges2D(changes));
+        for (Vector change : changes) {
+            int changeY = change.getBlockY();
+            if (changeY > 0) {
+                maxY += changeY;
+            } else {
+                minY += changeY;
+            }
         }
     }
 
     /**
      * Contract the region.
      *
-     * @param change
+     * @param changes array/arguments with multiple related changes
+     * @throws RegionOperationException
      */
-    public void contract(Vector change) throws RegionOperationException {
-        if (change.getBlockX() != 0 || change.getBlockZ() != 0) {
-            throw new RegionOperationException("Cylinders can only be expanded vertically.");
-        }
-
-        int changeY = change.getBlockY();
-        if (changeY > 0) {
-            minY += changeY;
-        } else {
-            maxY += changeY;
+    public void contract(Vector... changes) throws RegionOperationException {
+        center = center.subtract(calculateDiff2D(changes));
+        Vector2D newRadius = radius.subtract(calculateChanges2D(changes));
+        radius = Vector2D.getMaximum(new Vector2D(1.5, 1.5), newRadius);
+        for (Vector change : changes) {
+            int height = maxY - minY;
+            int changeY = change.getBlockY();
+            if (changeY > 0) {
+                minY += Math.min(height, changeY);
+            } else {
+                maxY += Math.max(-height, changeY);
+            }
         }
     }
 
     @Override
     public void shift(Vector change) throws RegionOperationException {
-        setCenter(getCenter().add(change));
+        center = center.add(change.toVector2D());
 
         int changeY = change.getBlockY();
         maxY += changeY;
@@ -267,12 +308,12 @@ public class CylinderRegion extends AbstractRegion {
             return false;
         }
 
-        return pt.toVector2D().subtract(center2D).divide(radius).lengthSq() <= 1;
+        return pt.toVector2D().subtract(center).divide(radius).lengthSq() <= 1;
     }
 
     /**
      * Get a list of chunks.
-     * 
+     *
      * @return
      */
     public Set<Vector2D> getChunks() {
@@ -283,9 +324,30 @@ public class CylinderRegion extends AbstractRegion {
 
         for (int x = min.getBlockX(); x <= max.getBlockX(); ++x) {
             for (int z = min.getBlockZ(); z <= max.getBlockZ(); ++z) {
-                Vector pt = new Vector(x, minY, z);
-                if (contains(pt)) {
-                    chunks.add(ChunkStore.toChunk(pt));
+                if (contains(new BlockVector(x, minY, z))) {
+                    chunks.add(new BlockVector2D(x >> ChunkStore.CHUNK_SHIFTS,
+                            z >> ChunkStore.CHUNK_SHIFTS));
+                }
+            }
+        }
+
+        return chunks;
+    }
+
+    @Override
+    public Set<Vector> getChunkCubes() {
+        Set<Vector> chunks = new HashSet<Vector>();
+
+        Vector min = getMinimumPoint();
+        Vector max = getMaximumPoint();
+
+        for (int x = min.getBlockX(); x <= max.getBlockX(); ++x) {
+            for (int y = min.getBlockY(); y <= max.getBlockY(); ++y) {
+                for (int z = min.getBlockZ(); z <= max.getBlockZ(); ++z) {
+                    if (contains(new BlockVector(x, y, z))) {
+                        chunks.add(new BlockVector(x >> ChunkStore.CHUNK_SHIFTS,
+                                y >> ChunkStore.CHUNK_SHIFTS, z >> ChunkStore.CHUNK_SHIFTS));
+                    }
                 }
             }
         }
@@ -295,8 +357,8 @@ public class CylinderRegion extends AbstractRegion {
 
     /**
      * Sets the height of the cylinder to fit the specified Y.
-     * 
-     * @param y 
+     *
+     * @param y
      * @return true if the area was expanded
      */
     public boolean setY(int y) {
@@ -316,14 +378,33 @@ public class CylinderRegion extends AbstractRegion {
         return false;
     }
 
+    @Override
+    public Iterator<BlockVector> iterator() {
+        return new FlatRegion3DIterator(this);
+    }
+
+    @Override
+    public Iterable<Vector2D> asFlatRegion() {
+        return new Iterable<Vector2D>() {
+            @Override
+            public Iterator<Vector2D> iterator() {
+                return new FlatRegionIterator(CylinderRegion.this);
+            }
+        };
+    }
+
     /**
      * Returns string representation in the format
-     * "(centerX, centerY, centerZ) - (radiusX, radiusZ)"
-     * 
+     * "(centerX, centerZ) - (radiusX, radiusZ) - (minY, maxY)"
+     *
      * @return string
      */
     @Override
     public String toString() {
-        return center + " - " + radius;
+        return center + " - " + radius + "(" + minY + ", " + maxY + ")";
+    }
+
+    public CylinderRegion clone() {
+        return (CylinderRegion) super.clone();
     }
 }

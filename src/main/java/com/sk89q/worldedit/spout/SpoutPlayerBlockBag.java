@@ -1,7 +1,6 @@
-// $Id$
 /*
  * WorldEdit
- * Copyright (C) 2010 sk89q <http://www.sk89q.com> and contributors
+ * Copyright (C) 2012 sk89q <http://www.sk89q.com> and contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,7 +14,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
+
+// $Id$
+
 
 package com.sk89q.worldedit.spout;
 
@@ -27,10 +29,10 @@ import com.sk89q.worldedit.bags.OutOfSpaceException;
 import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.blocks.BlockID;
-import com.sk89q.worldedit.blocks.ItemType;
 import org.spout.api.inventory.Inventory;
 import org.spout.api.inventory.ItemStack;
-import org.spout.api.material.MaterialData;
+import org.spout.api.material.Material;
+import org.spout.api.material.MaterialRegistry;
 import org.spout.api.player.Player;
 
 public class SpoutPlayerBlockBag extends BlockBag {
@@ -45,7 +47,7 @@ public class SpoutPlayerBlockBag extends BlockBag {
 
     /**
      * Construct the object.
-     * 
+     *
      * @param player
      */
     public SpoutPlayerBlockBag(Player player) {
@@ -63,7 +65,7 @@ public class SpoutPlayerBlockBag extends BlockBag {
 
     /**
      * Get the player.
-     * 
+     *
      * @return
      */
     public Player getPlayer() {
@@ -77,11 +79,14 @@ public class SpoutPlayerBlockBag extends BlockBag {
      */
     @Override
     public void fetchItem(BaseItem item) throws BlockBagException {
-        final int id = item.getType();
-        final int damage = item.getDamage();
+        final short id = (short)item.getType();
+        final short damage = item.getDamage();
         int amount = (item instanceof BaseItemStack) ? ((BaseItemStack) item).getAmount() : 1;
         assert(amount == 1);
-        boolean usesDamageValue = ItemType.usesDamageValue(id);
+        Material mat = MaterialRegistry.get(id);
+        if (mat.hasSubMaterials()) {
+            mat = mat.getSubMaterial(damage);
+        }
 
         if (id == BlockID.AIR) {
             throw new IllegalArgumentException("Can't fetch air block");
@@ -98,13 +103,8 @@ public class SpoutPlayerBlockBag extends BlockBag {
                 continue;
             }
 
-            if (bukkitItem.getMaterial().getId() != id) {
-                // Type id doesn't fit
-                continue;
-            }
-
-            if (usesDamageValue && bukkitItem.getDamage() != damage) {
-                // Damage value doesn't fit.
+            if (!bukkitItem.getMaterial().equals(mat)) {
+                // Type id or damage value doesn't fit
                 continue;
             }
 
@@ -132,16 +132,19 @@ public class SpoutPlayerBlockBag extends BlockBag {
 
     /**
      * Store a block.
-     * 
+     *
      * @param item
      */
     @Override
     public void storeItem(BaseItem item) throws BlockBagException {
-        final int id = item.getType();
-        final int damage = item.getDamage();
+        final short id = (short) item.getType();
+        final short damage = item.getDamage();
+        Material mat = MaterialRegistry.get(id);
+        if (mat.hasSubMaterials()) {
+            mat = mat.getSubMaterial(damage);
+        }
         int amount = (item instanceof BaseItemStack) ? ((BaseItemStack) item).getAmount() : 1;
-        assert(amount <= 64);
-        boolean usesDamageValue = ItemType.usesDamageValue(id);
+        assert(amount <= mat.getMaxStackSize());
 
         if (id == BlockID.AIR) {
             throw new IllegalArgumentException("Can't store air block");
@@ -164,13 +167,8 @@ public class SpoutPlayerBlockBag extends BlockBag {
                 continue;
             }
 
-            if (bukkitItem.getMaterial().getId() != id) {
-                // Type id doesn't fit
-                continue;
-            }
-
-            if (usesDamageValue && bukkitItem.getDamage() != damage) {
-                // Damage value doesn't fit.
+            if (!bukkitItem.getMaterial().equals(mat)) {
+                // Type id or damage value doesn't fit
                 continue;
             }
 
@@ -179,23 +177,23 @@ public class SpoutPlayerBlockBag extends BlockBag {
                 // Unlimited
                 return;
             }
-            if (currentAmount >= 64) {
+            if (currentAmount >= mat.getMaxStackSize()) {
                 // Full stack
                 continue;
             }
 
-            int spaceLeft = 64 - currentAmount;
+            int spaceLeft = mat.getMaxStackSize() - currentAmount;
             if (spaceLeft >= amount) {
                 bukkitItem.setAmount(currentAmount + amount);
                 return;
             }
 
-            bukkitItem.setAmount(64);
+            bukkitItem.setAmount(mat.getMaxStackSize());
             amount -= spaceLeft;
         }
 
         if (freeSlot > -1) {
-            items[freeSlot] = new ItemStack(MaterialData.getMaterial((short)id), amount);
+            items[freeSlot] = new ItemStack(mat, amount);
             return;
         }
 
