@@ -17,17 +17,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+import com.sk89q.util.StringUtil;
+import com.sk89q.worldedit.LocalConfiguration;
+import com.sk89q.worldedit.LocalSession;
+import com.sk89q.worldedit.LogFormat;
+import com.sk89q.worldedit.snapshots.SnapshotRepository;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sk89q.util.StringUtil;
-import com.sk89q.worldedit.LocalConfiguration;
-import com.sk89q.worldedit.LocalSession;
-import com.sk89q.worldedit.LogFormat;
-import com.sk89q.worldedit.snapshots.SnapshotRepository;
 
 /**
  * Configuration for CanaryMod.

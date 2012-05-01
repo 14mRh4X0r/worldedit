@@ -17,12 +17,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-import java.util.logging.Logger;
-import java.util.logging.Level;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.Vector;
+import com.sk89q.worldedit.util.TreeGenerator.TreeType;
+import java.lang.reflect.Constructor;
 import java.util.Random;
-import java.lang.reflect.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import sun.reflect.ReflectionFactory;
-import com.sk89q.worldedit.*;
 
 /**
  *
@@ -64,31 +66,7 @@ public class MinecraftServerInterface {
         OWorldGenerator gen = worldGen;
         return gen.a(proxy, random,
                 pt.getBlockX(), pt.getBlockY() + 1, pt.getBlockZ());
-    }
-
-    /**
-     * Generate a tree at a location.
-     *
-     * @param editSession 
-     * @param pt
-     * @return
-     */
-    public static boolean generateTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenTrees(false));
-    }
-
-    /**
-     * Generate a big tree at a location.
-     *
-     * @param editSession 
-     * @param pt
-     * @return
-     */
-    public static boolean generateBigTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenBigTree(false));
-    }
-
-    
+    }    
 
     /**
      * Instantiate a class without calling its constructor.
@@ -112,15 +90,44 @@ public class MinecraftServerInterface {
         }
     }
 
-    static boolean generateBirchTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenForest(false));
-    }
-
-    static boolean generateRedwoodTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenTaiga2(false));
-    }
-
-    static boolean generateTallRedwoodTree(EditSession editSession, Vector pt) {
-        return performWorldGen(editSession, pt, new OWorldGenTaiga1());
+    public static boolean generateTree(TreeType type, EditSession editSession, Vector pt) {
+        OWorldGenerator treeGen;
+        switch (type) {
+            case BIG_TREE:
+                treeGen = new OWorldGenBigTree(true);
+                break;
+            case BIRCH:
+                treeGen = new OWorldGenForest(true);
+                break;
+            case BROWN_MUSHROOM:
+                treeGen = new OWorldGenBigMushroom(0);
+                break;
+            case JUNGLE:
+                treeGen = new OWorldGenHugeTrees(true, 10 + random.nextInt(20), 3, 3);
+                break;
+            case JUNGLE_BUSH:
+                treeGen = new OWorldGenShrub(3, 0);
+                break;
+            case REDWOOD:
+                treeGen = new OWorldGenTaiga2(true);
+                break;
+            case RED_MUSHROOM:
+                treeGen = new OWorldGenBigMushroom(1);
+                break;
+            case SHORT_JUNGLE:
+                treeGen = new OWorldGenTrees(true, 4 + random.nextInt(7), 3, 3, false);
+                break;
+            case SWAMP:
+                treeGen = new OWorldGenSwamp();
+                break;
+            case TALL_REDWOOD:
+                treeGen = new OWorldGenTaiga1();
+                break;
+            case TREE:
+            default:
+                treeGen = new OWorldGenTrees(true);
+                break;
+        }
+        return performWorldGen(editSession, pt, treeGen);
     }
 }

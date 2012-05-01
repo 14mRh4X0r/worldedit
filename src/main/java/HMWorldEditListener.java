@@ -17,8 +17,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-import java.util.Map;
 import com.sk89q.worldedit.*;
+import java.util.Map;
 
 /**
  * The event listener for WorldEdit in hMod.

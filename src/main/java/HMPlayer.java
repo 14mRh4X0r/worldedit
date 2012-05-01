@@ -18,13 +18,8 @@
 */
 
 import com.sk89q.util.StringUtil;
-import com.sk89q.worldedit.LocalWorld;
-import com.sk89q.worldedit.ServerInterface;
-import com.sk89q.worldedit.Vector;
-import com.sk89q.worldedit.LocalPlayer;
-import com.sk89q.worldedit.WorldVector;
+import com.sk89q.worldedit.*;
 import com.sk89q.worldedit.bags.BlockBag;
-import com.sk89q.worldedit.blocks.BlockType;
 import com.sk89q.worldedit.cui.CUIEvent;
 
 /**

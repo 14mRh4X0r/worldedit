@@ -17,23 +17,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-import com.sk89q.worldedit.EntityType;
-import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.*;
+import com.sk89q.worldedit.blocks.*;
 import com.sk89q.worldedit.regions.Region;
+import com.sk89q.worldedit.util.TreeGenerator.TreeType;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.LocalWorld;
-import com.sk89q.worldedit.Vector;
-import com.sk89q.worldedit.Vector2D;
-import com.sk89q.worldedit.blocks.BaseBlock;
-import com.sk89q.worldedit.blocks.BaseItemStack;
-import com.sk89q.worldedit.blocks.ContainerBlock;
-import com.sk89q.worldedit.blocks.FurnaceBlock;
-import com.sk89q.worldedit.blocks.MobSpawnerBlock;
-import com.sk89q.worldedit.blocks.SignBlock;
-import java.util.ArrayList;
-import java.util.Set;
 
 /**
  * World for CanaryMod.
@@ -269,49 +261,6 @@ public class HMWorld extends LocalWorld {
     }
 
     /**
-     * Get mob spawner mob type. May return an empty string.
-     *
-     * @param pt
-     * @param mobType
-     */
-
-    /**
-     * Generate a tree at a location.
-     * 
-     * @param pt
-     * @return
-     */
-    @Override
-    public boolean generateTree(EditSession editSession, Vector pt) {
-        try {
-            return MinecraftServerInterface.generateTree(editSession, pt);
-        } catch (Throwable t) {
-            logger.log(Level.SEVERE, 
-                    "Failed to create tree (do you need to update WorldEdit " +
-                    "due to a Minecraft update?)", t);
-            return false;
-        }
-    }
-
-    /**
-     * Generate a big tree at a location.
-     * 
-     * @param pt
-     * @return
-     */
-    @Override
-    public boolean generateBigTree(EditSession editSession, Vector pt) {
-        try {
-            return MinecraftServerInterface.generateBigTree(editSession, pt);
-        } catch (Throwable t) {
-            logger.log(Level.SEVERE, 
-                    "Failed to create big tree (do you need to update WorldEdit " +
-                    "due to a Minecraft update?)", t);
-            return false;
-        }
-    }
-
-    /**
      * Drop an item.
      *
      * @param pt
@@ -363,7 +312,7 @@ public class HMWorld extends LocalWorld {
 
     @Override
     public void setBlockDataFast(Vector pt, int data) {
-        world.getWorld().d(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(),
+        world.getWorld().b(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(),
                 data);
     }
 
@@ -383,7 +332,8 @@ public class HMWorld extends LocalWorld {
 
     @Override
     public int getBlockLightLevel(Vector pt) {
-        return world.getWorld().l(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
+        // TODO: bug CanaryMod devs about the return type
+        return (int) world.getLightLevel(pt.getBlockX(), pt.getBlockY(), pt.getBlockZ());
     }
 
     @Override
@@ -540,67 +490,44 @@ public class HMWorld extends LocalWorld {
     }
 
     @Override
-    public boolean generateBirchTree(EditSession editSession, Vector pt) throws MaxChangedBlocksException {
-        try {
-            return MinecraftServerInterface.generateBirchTree(editSession, pt);
-        } catch (Throwable t) {
-            logger.log(Level.SEVERE, 
-                    "Failed to create big tree (do you need to update WorldEdit " +
-                    "due to a Minecraft update?)", t);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean generateRedwoodTree(EditSession editSession, Vector pt) throws MaxChangedBlocksException {
-        try {
-            return MinecraftServerInterface.generateRedwoodTree(editSession, pt);
-        } catch (Throwable t) {
-            logger.log(Level.SEVERE, 
-                    "Failed to create big tree (do you need to update WorldEdit " +
-                    "due to a Minecraft update?)", t);
-            return false;
-        }
-    }
-
-    @Override
-    public boolean generateTallRedwoodTree(EditSession editSession, Vector pt) throws MaxChangedBlocksException {
-        try {
-            return MinecraftServerInterface.generateTallRedwoodTree(editSession, pt);
-        } catch (Throwable t) {
-            logger.log(Level.SEVERE, 
-                    "Failed to create big tree (do you need to update WorldEdit " +
-                    "due to a Minecraft update?)", t);
-            return false;
-        }
-    }
-
-    @Override
     public void dropItem(Vector pt, BaseItemStack item) {
         world.dropItem(pt.getX(), pt.getY(), pt.getZ(), item.getType(), item.getAmount(), item.getDamage());
     }
 
     @Override
-    public int killMobs(Vector origin, int radius, boolean killPets) {
+    public int killMobs(Vector origin, double radius, int flags) {
+        boolean killPets = (flags & KillFlags.PETS) != 0;
+        boolean killNPCs = (flags & KillFlags.NPCS) != 0;
+        boolean killAnimals = (flags & KillFlags.ANIMALS) != 0;
+        boolean withLightning = (flags & KillFlags.WITH_LIGHTNING) != 0;
+        boolean killGolems = (flags & KillFlags.GOLEMS) != 0;
+        
         int killed = 0;
+        double radiusSq = radius * radius;
         
-        for (Mob mob : world.getMobList()) {
-            Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
-            if (mob.getHealth() > 0
-                    && (radius == -1 || mobPos.distance(origin) <= radius)) {
-                mob.setHealth(0);
-                killed++;
-            }
-        }
-        
-        for (Mob mob : world.getAnimalList()) {
-            if (!killPets && (mob.getMob() instanceof OEntityWolf)
-                    && ((OEntityWolf)mob.getMob()).C())
+        for (LivingEntity ent : world.getLivingEntityList()) {
+            if (ent.isPlayer())
                 continue;
-            Vector mobPos = new Vector(mob.getX(), mob.getY(), mob.getZ());
-            if (mob.getHealth() > 0
-                    && (radius == -1 || mobPos.distance(origin) <= radius)) {
-                mob.setHealth(0);
+            
+            if (!killAnimals && ent.isAnimal())
+                continue;
+            
+            if (!killPets && ent.getEntity() instanceof OEntityTamable && ((OEntityTamable) ent.getEntity()).u_()) //isTamed
+                continue;
+            
+            if (!killGolems && ent.getEntity() instanceof OEntityGolem)
+                continue;
+            
+            if (!killNPCs && ent.getEntity() instanceof OEntityPlayer)
+                continue;
+            
+            if (radius < 0 || origin.distanceSq(new Vector(ent.getX(), ent.getY(), ent.getZ())) <= radiusSq) {
+                if (withLightning) {
+                    OEntityLightningBolt oelb = new OEntityLightningBolt(world.getWorld(), ent.getX(), ent.getY(), ent.getZ());
+                    world.getWorld().b(oelb);
+                }
+                
+                ent.destroy();
                 killed++;
             }
         }
@@ -710,7 +637,7 @@ public class HMWorld extends LocalWorld {
     private boolean regenerateChunk(int x, int z) {
         unloadChunk(x, z);
 
-        OChunkProviderServer cps = world.getWorld().J;
+        OChunkProviderServer cps = world.getWorld().G;
 
         OChunk chunk = null;
 
@@ -735,14 +662,14 @@ public class HMWorld extends LocalWorld {
 
     private boolean unloadChunk(int x, int z) {
 
-        OChunkProviderServer cps = world.getWorld().J;
+        OChunkProviderServer cps = world.getWorld().G;
 
         OChunk chunk = cps.b(x, z);
 
         try {
             ((Set) getPrivateField("b", cps)).remove(Long.valueOf(OChunkCoordIntPair.a(x, z)));
             ((OLongHashMap) getPrivateField("f", cps)).d(OChunkCoordIntPair.a(x, z));
-            ((ArrayList) getPrivateField("g", cps)).remove(chunk);
+            ((List) getPrivateField("g", cps)).remove(chunk);
         } catch (Exception e) {
             logger.log(Level.WARNING, "Could not access private fields", e);
         }
@@ -758,10 +685,10 @@ public class HMWorld extends LocalWorld {
 
     private void chunkLoadPostProcess(OChunk chunk, int x, int z) {
         if (chunk != null) {
-            OChunkProviderServer cps = world.getWorld().J;
+            OChunkProviderServer cps = world.getWorld().G;
             try {
                 ((OLongHashMap) getPrivateField("f", cps)).a(OChunkCoordIntPair.a(x, z), chunk);
-                ((ArrayList) getPrivateField("g", cps)).add(chunk);
+                ((List) getPrivateField("g", cps)).add(chunk);
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Could not access private fields", e);
             }
@@ -819,6 +746,36 @@ public class HMWorld extends LocalWorld {
         world.getWorld().f(type, pt.getBlockX(), pt.getBlockY(), pt.getBlockZ(), data);
         return true;
     }
-    
-    
+
+    @Override
+    public BiomeType getBiome(Vector2D pt) {
+        OBiomeGenBase biome = world.getWorld().a(pt.getBlockX(), pt.getBlockZ());
+        try {
+            return CanaryBiomeType.valueOf(biome.y.toUpperCase(Locale.ENGLISH));
+        } catch (IllegalArgumentException exc) {
+            return BiomeType.UNKNOWN;
+        }
+    }
+
+    @Override
+    public void setBiome(Vector2D pt, BiomeType biome) {
+        if (!(biome instanceof CanaryBiomeType))
+            return;
+        
+        // Blatantly "borrowed" from Bukkit
+        OBiomeGenBase canaryBiome = ((CanaryBiomeType) biome).getCanaryBiome();
+        if (this.world.isChunkLoaded(pt.getBlockX(), 0, pt.getBlockZ())) {
+            OChunk chunk = this.world.getChunk(pt.getBlockX(), pt.getBlockZ()).chunk;
+
+            if (chunk != null) {
+                byte[] biomevals = chunk.l();
+                biomevals[((pt.getBlockZ() & 0xF) << 4) | (pt.getBlockX() & 0xF)] = (byte)canaryBiome.M;
+            }
+        }
+    }
+
+    @Override
+    public boolean generateTree(TreeType type, EditSession editSession, Vector pt) throws MaxChangedBlocksException {
+        return MinecraftServerInterface.generateTree(type, editSession, pt);
+    }
 }

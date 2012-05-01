@@ -17,7 +17,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-import com.sk89q.worldedit.*;
+import com.sk89q.worldedit.BiomeTypes;
+import com.sk89q.worldedit.LocalWorld;
+import com.sk89q.worldedit.ServerInterface;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +29,7 @@ import java.util.List;
  */
 public class HMServerInterface extends ServerInterface {
     private HMWorldEditListener listener;
+    private CanaryBiomeTypes biomes = new CanaryBiomeTypes();
 
     HMServerInterface(HMWorldEditListener listener) {
         this.listener = listener;
@@ -84,6 +87,11 @@ public class HMServerInterface extends ServerInterface {
                     etc.getServer().addToServerQueue(wrapPeriodicTask(task, period), -period);
             }
         };
+    }
+
+    @Override
+    public BiomeTypes getBiomes() {
+        return biomes;
     }
     
 }

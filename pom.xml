@@ -54,16 +54,16 @@
 
     <!-- CanaryMod -->
     <dependency>
-        <groupId>net.canarymod</groupId>
-        <artifactId>CanaryMod</artifactId>
-        <version>crow-b4.4.10</version>
+      <groupId>net.canarymod</groupId>
+      <artifactId>CanaryMod</artifactId>
+      <version>crow-b4.10.10</version>
     </dependency>
 
     <!-- MinecraftServerO -->
     <dependency>
-        <groupId>net.canarymod</groupId>
-        <artifactId>MinecraftServerO</artifactId>
-        <version>1.1.0</version>
+      <groupId>net.canarymod</groupId>
+      <artifactId>MinecraftServerO</artifactId>
+      <version>1.2.5</version>
     </dependency>
 
     <!-- Archive reading library for snapshots -->
